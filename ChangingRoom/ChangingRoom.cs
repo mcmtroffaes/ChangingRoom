@@ -66,7 +66,7 @@ public class ChangingRoom : Script
         menuModel.RefreshIndex();
         menuMain.BindMenuToItem(menuModel, menuItemModel);
 
-        //menuModel.OnListChange += modelOnListChange; // BUGGED
+        menuModel.OnListChange += modelOnListChange;
 
         // old interface, to be removed
         _hotstrings = new Dictionary<string, Action<string[]>>();
@@ -109,8 +109,8 @@ public class ChangingRoom : Script
     public void modelOnListChange(UIMenu sender, UIMenuListItem list, int index)
     {
         if (list != modelListItem) return;
-        PedHash model = list.IndexToItem(index).ToString();
-        UI.Notify("Selected ~b~" + model + "~w~...");
+        PedHash model = list.IndexToItem(index);
+        UI.Notify("Selected ~b~" + model.ToString() + "~w~...");
     }
 
     public void ActionSetPlayerModel(string[] args)
