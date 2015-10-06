@@ -24,9 +24,32 @@ public enum ComponentId
 
 public class ChangingRoom : Script
 {
+    public static PedHash[] modelPlayer = {
+        PedHash.Michael,
+        PedHash.Franklin,
+        PedHash.Trevor,
+    };
+
+    public static PedHash[] modelMission = {
+        PedHash.Abigail,
+        PedHash.AmandaTownley,
+        PedHash.Andreas,
+        PedHash.Ashley,
+        PedHash.Ballasog,
+        PedHash.Bankman,
+        PedHash.Barry,
+        PedHash.Bestmen,
+        PedHash.Beverly,
+        PedHash.Brad,
+        PedHash.Bride,
+    };
+
+    private readonly Dictionary<string, PedHash> _pedhash;
+
     private UIMenu menuMain;
     private UIMenu menuModel;
-    private UIMenuListItem modelListItem;
+    private UIMenu menuModelPlayer;
+    private UIMenu menuModelMission;
     private UIMenu menuOutfit;
     private UIMenuListItem outfitComponentListItem;
     private UIMenuListItem outfitDrawableListItem;
@@ -43,6 +66,9 @@ public class ChangingRoom : Script
         KeyUp += onKeyUp;
         KeyDown += onKeyDown;
 
+        _pedhash = new Dictionary<string, PedHash>();
+        foreach (PedHash model in Enum.GetValues(typeof(PedHash))) _pedhash[model.ToString()] = model;
+
         _menuPool = new MenuPool();
 
         menuMain = new UIMenu("Changing Room", "Main Menu");
@@ -53,24 +79,40 @@ public class ChangingRoom : Script
         menuMain.AddItem(menuItemOutfit);
         menuMain.RefreshIndex();
 
-        menuModel = new UIMenu("Changing Room", "Model");
+        menuModel = new UIMenu("Changing Room", "Model Categories");
         _menuPool.Add(menuModel);
-        var models = new List<dynamic>
-        {
-            PedHash.Michael,
-            PedHash.Trevor,
-            PedHash.Franklin,
-            PedHash.ShopHighSFM,
-        };
-        menuModel.AddItem(modelListItem = new UIMenuListItem("Model", models, 0));
+        var menuItemModelPlayer = new UIMenuItem("Player Characters");
+        menuModel.AddItem(menuItemModelPlayer);
+        var menuItemModelMission = new UIMenuItem("Mission Characters");
+        menuModel.AddItem(menuItemModelMission);
         menuModel.RefreshIndex();
         menuMain.BindMenuToItem(menuModel, menuItemModel);
 
-        menuModel.OnListChange += modelOnListChange;
+        menuModelPlayer = new UIMenu("Changing Room", "Player Characters");
+        _menuPool.Add(menuModelPlayer);
+        foreach (PedHash model in modelPlayer)
+        {
+            var _item = new UIMenuItem(model.ToString());
+            menuModelPlayer.AddItem(_item);
+        }
+        menuModelPlayer.RefreshIndex();
+        menuModel.BindMenuToItem(menuModelPlayer, menuItemModelPlayer);
+
+        menuModelMission = new UIMenu("Changing Room", "Mission Characters");
+        _menuPool.Add(menuModelMission);
+        foreach (PedHash model in modelMission)
+        {
+            var _item = new UIMenuItem(model.ToString());
+            menuModelMission.AddItem(_item);
+        }
+        menuModelMission.RefreshIndex();
+        menuModel.BindMenuToItem(menuModelMission, menuItemModelMission);
+
+        menuModelPlayer.OnIndexChange += modelOnIndexChange;
+        menuModelMission.OnIndexChange += modelOnIndexChange;
 
         // old interface, to be removed
         _hotstrings = new Dictionary<string, Action<string[]>>();
-        _hotstrings.Add("set_player_model", ActionSetPlayerModel);
         _hotstrings.Add("set_component_variation", ActionSetComponentVariation);
         _hotkeys = new Dictionary<Keys, Action>();
         _hotkeys.Add(Keys.Decimal, () =>
@@ -106,21 +148,9 @@ public class ChangingRoom : Script
             _hotkeys[hotkey]();
     }
 
-    public void modelOnListChange(UIMenu sender, UIMenuListItem list, int index)
+    public void modelOnIndexChange(UIMenu sender, int index)
     {
-        if (list != modelListItem) return;
-        PedHash model = list.IndexToItem(index);
-        UI.Notify("Selected ~b~" + model.ToString() + "~w~...");
-    }
-
-    public void ActionSetPlayerModel(string[] args)
-    {
-        if (args.Count() != 1)
-        {
-            UI.Notify("expected a model name");
-            return;
-        }
-        var characterModel = new Model(args[0]);
+        var characterModel = new Model(_pedhash[sender.MenuItems[index].Text]);
         characterModel.Request(500);
 
         // Check the model is valid
@@ -135,7 +165,7 @@ public class ChangingRoom : Script
         }
         else
         {
-            UI.Notify("could not request model (invalid name?)");
+            UI.Notify("could not request model");
         }
 
         // Delete the model from memory after we've assigned it
