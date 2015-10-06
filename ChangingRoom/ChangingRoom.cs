@@ -1,5 +1,6 @@
 ﻿using GTA;
 using GTA.Native;
+using NativeUI;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -23,6 +24,16 @@ public enum ComponentId
 
 public class ChangingRoom : Script
 {
+    private UIMenu menuMain;
+    private UIMenu menuModel;
+    private UIMenuListItem modelListItem;
+    private UIMenu menuOutfit;
+    private UIMenuListItem outfitComponentListItem;
+    private UIMenuListItem outfitDrawableListItem;
+    private UIMenuListItem outfitTextureListItem;
+
+    private MenuPool _menuPool;
+
     private readonly Dictionary<Keys, Action> _hotkeys;
     private readonly Dictionary<string, Action<string[]>> _hotstrings;
 
@@ -31,7 +42,33 @@ public class ChangingRoom : Script
         Tick += onTick;
         KeyUp += onKeyUp;
         KeyDown += onKeyDown;
-        Interval = 100;
+
+        _menuPool = new MenuPool();
+
+        menuMain = new UIMenu("Changing Room", "Main Menu");
+        _menuPool.Add(menuMain);
+        var menuItemModel = new UIMenuItem("Model");
+        menuMain.AddItem(menuItemModel);
+        var menuItemOutfit = new UIMenuItem("Outfit");
+        menuMain.AddItem(menuItemOutfit);
+        menuMain.RefreshIndex();
+
+        menuModel = new UIMenu("Changing Room", "Model");
+        _menuPool.Add(menuModel);
+        var models = new List<dynamic>
+        {
+            PedHash.Michael,
+            PedHash.Trevor,
+            PedHash.Franklin,
+            PedHash.ShopHighSFM,
+        };
+        menuModel.AddItem(modelListItem = new UIMenuListItem("Model", models, 0));
+        menuModel.RefreshIndex();
+        menuMain.BindMenuToItem(menuModel, menuItemModel);
+
+        //menuModel.OnListChange += modelOnListChange; // BUGGED
+
+        // old interface, to be removed
         _hotstrings = new Dictionary<string, Action<string[]>>();
         _hotstrings.Add("set_player_model", ActionSetPlayerModel);
         _hotstrings.Add("set_component_variation", ActionSetComponentVariation);
@@ -51,6 +88,7 @@ public class ChangingRoom : Script
 
     private void onTick(object sender, EventArgs e)
     {
+        _menuPool.ProcessMenus();
     }
 
     private void onKeyDown(object sender, KeyEventArgs e)
@@ -59,8 +97,20 @@ public class ChangingRoom : Script
 
     private void onKeyUp(object sender, KeyEventArgs e)
     {
+        if (e.KeyCode == Keys.F5 && !_menuPool.IsAnyMenuOpen())
+        {
+            menuMain.Visible = !menuMain.Visible;
+        }
+
         foreach (var hotkey in _hotkeys.Keys.Where(hotkey => e.KeyCode == hotkey))
             _hotkeys[hotkey]();
+    }
+
+    public void modelOnListChange(UIMenu sender, UIMenuListItem list, int index)
+    {
+        if (list != modelListItem) return;
+        PedHash model = list.IndexToItem(index).ToString();
+        UI.Notify("Selected ~b~" + model + "~w~...");
     }
 
     public void ActionSetPlayerModel(string[] args)

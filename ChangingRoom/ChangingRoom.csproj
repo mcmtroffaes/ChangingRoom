@@ -30,6 +30,9 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
+    <Reference Include="NativeUI">
+      <HintPath>..\..\..\NativeUI.dll</HintPath>
+    </Reference>
     <Reference Include="ScriptHookVDotNet">
       <HintPath>..\..\..\ScriptHookVDotNet.dll</HintPath>
     </Reference>
