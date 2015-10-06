@@ -24,13 +24,13 @@ public enum ComponentId
 
 public class ChangingRoom : Script
 {
-    public static PedHash[] modelPlayer = {
+    public static PedHash[] modelsPlayer = {
         PedHash.Michael,
         PedHash.Franklin,
         PedHash.Trevor,
     };
 
-    public static PedHash[] modelMission = {
+    public static PedHash[] modelsMission = {
         PedHash.Abigail,
         PedHash.AmandaTownley,
         PedHash.Andreas,
@@ -60,6 +60,22 @@ public class ChangingRoom : Script
     private readonly Dictionary<Keys, Action> _hotkeys;
     private readonly Dictionary<string, Action<string[]>> _hotstrings;
 
+    public void AddCategoryToMenuModel(string name, PedHash[] models)
+    {
+        var submenu = new UIMenu("Changing Room", name);
+        var menuItem = new UIMenuItem(name);
+        menuModel.AddItem(menuItem);
+        _menuPool.Add(submenu);
+        foreach (PedHash model in models)
+        {
+            var subitem = new UIMenuItem(model.ToString());
+            submenu.AddItem(subitem);
+        }
+        submenu.RefreshIndex();
+        menuModel.BindMenuToItem(submenu, menuItem);
+        submenu.OnItemSelect += modelOnItemSelect;
+    }
+
     public ChangingRoom()
     {
         Tick += onTick;
@@ -73,43 +89,18 @@ public class ChangingRoom : Script
 
         menuMain = new UIMenu("Changing Room", "Main Menu");
         _menuPool.Add(menuMain);
-        var menuItemModel = new UIMenuItem("Model");
+        var menuItemModel = new UIMenuItem("Change Model");
         menuMain.AddItem(menuItemModel);
-        var menuItemOutfit = new UIMenuItem("Outfit");
+        var menuItemOutfit = new UIMenuItem("Change Outfit");
         menuMain.AddItem(menuItemOutfit);
         menuMain.RefreshIndex();
 
         menuModel = new UIMenu("Changing Room", "Model Categories");
         _menuPool.Add(menuModel);
-        var menuItemModelPlayer = new UIMenuItem("Player Characters");
-        menuModel.AddItem(menuItemModelPlayer);
-        var menuItemModelMission = new UIMenuItem("Mission Characters");
-        menuModel.AddItem(menuItemModelMission);
+        AddCategoryToMenuModel("Player Characters", modelsPlayer);
+        AddCategoryToMenuModel("Mission Characters", modelsMission);
         menuModel.RefreshIndex();
         menuMain.BindMenuToItem(menuModel, menuItemModel);
-
-        menuModelPlayer = new UIMenu("Changing Room", "Player Characters");
-        _menuPool.Add(menuModelPlayer);
-        foreach (PedHash model in modelPlayer)
-        {
-            var _item = new UIMenuItem(model.ToString());
-            menuModelPlayer.AddItem(_item);
-        }
-        menuModelPlayer.RefreshIndex();
-        menuModel.BindMenuToItem(menuModelPlayer, menuItemModelPlayer);
-
-        menuModelMission = new UIMenu("Changing Room", "Mission Characters");
-        _menuPool.Add(menuModelMission);
-        foreach (PedHash model in modelMission)
-        {
-            var _item = new UIMenuItem(model.ToString());
-            menuModelMission.AddItem(_item);
-        }
-        menuModelMission.RefreshIndex();
-        menuModel.BindMenuToItem(menuModelMission, menuItemModelMission);
-
-        menuModelPlayer.OnIndexChange += modelOnIndexChange;
-        menuModelMission.OnIndexChange += modelOnIndexChange;
 
         // old interface, to be removed
         _hotstrings = new Dictionary<string, Action<string[]>>();
@@ -148,9 +139,9 @@ public class ChangingRoom : Script
             _hotkeys[hotkey]();
     }
 
-    public void modelOnIndexChange(UIMenu sender, int index)
+    public void modelOnItemSelect(UIMenu sender, UIMenuItem selectedItem, int index)
     {
-        var characterModel = new Model(_pedhash[sender.MenuItems[index].Text]);
+        var characterModel = new Model(_pedhash[selectedItem.Text]);
         characterModel.Request(500);
 
         // Check the model is valid
