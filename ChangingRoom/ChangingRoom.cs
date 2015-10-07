@@ -8,18 +8,24 @@ using System.Windows.Forms;
 
 public enum ComponentId
 {
-    FACE,
-    BEARD,
-    HAIRCUT,
-    SHIRT,
-    PANTS,
-    HANDS,
-    SHOES,
-    EYES,
-    ACCESSORIES,
-    ITEMS,
-    DECALS,
-    COLLARS
+    Face,
+    Beard,
+    Haircut,
+    Shirt,
+    Pants,
+    Hands,
+    Shoes,
+    Eyes,
+    Accessories,
+    Items,
+    Decals,
+    Collars,
+}
+
+public enum ComponentWhat
+{
+    Drawable,
+    Texture,
 }
 
 public class ChangingRoom : Script
@@ -44,21 +50,20 @@ public class ChangingRoom : Script
         PedHash.Bride,
     };
 
+    public static Dictionary<ComponentWhat, int> NUM_COMPONENT_WHAT = new Dictionary<ComponentWhat, int>
+    {
+        { ComponentWhat.Drawable, 50 },
+        { ComponentWhat.Texture, 50 }
+    };
+
     private readonly Dictionary<string, PedHash> _pedhash;
+    private readonly Dictionary<string, ComponentId> _componentid;
+    private readonly Dictionary<string, ComponentWhat> _componentwhat;
 
     private UIMenu menuMain;
     private UIMenu menuModel;
-    private UIMenu menuModelPlayer;
-    private UIMenu menuModelMission;
     private UIMenu menuOutfit;
-    private UIMenuListItem outfitComponentListItem;
-    private UIMenuListItem outfitDrawableListItem;
-    private UIMenuListItem outfitTextureListItem;
-
     private MenuPool _menuPool;
-
-    private readonly Dictionary<Keys, Action> _hotkeys;
-    private readonly Dictionary<string, Action<string[]>> _hotstrings;
 
     public void AddCategoryToMenuModel(string name, PedHash[] models)
     {
@@ -76,6 +81,15 @@ public class ChangingRoom : Script
         submenu.OnItemSelect += modelOnItemSelect;
     }
 
+    public void AddComponentToMenuOutfit(ComponentId componentId, ComponentWhat componentWhat)
+    {
+        var menuItem = new UIMenuListItem(
+            componentId.ToString() + " " + componentWhat.ToString(),
+            Enumerable.Range(0, NUM_COMPONENT_WHAT[componentWhat]).Cast<dynamic>().ToList(),
+            0);
+        menuOutfit.AddItem(menuItem);
+    }
+
     public ChangingRoom()
     {
         Tick += onTick;
@@ -83,7 +97,11 @@ public class ChangingRoom : Script
         KeyDown += onKeyDown;
 
         _pedhash = new Dictionary<string, PedHash>();
-        foreach (PedHash model in Enum.GetValues(typeof(PedHash))) _pedhash[model.ToString()] = model;
+        _componentid = new Dictionary<string, ComponentId>();
+        _componentwhat = new Dictionary<string, ComponentWhat>();
+        foreach (PedHash x in Enum.GetValues(typeof(PedHash))) _pedhash[x.ToString()] = x;
+        foreach (ComponentId x in Enum.GetValues(typeof(ComponentId))) _componentid[x.ToString()] = x;
+        foreach (ComponentWhat x in Enum.GetValues(typeof(ComponentWhat))) _componentwhat[x.ToString()] = x;
 
         _menuPool = new MenuPool();
 
@@ -102,21 +120,16 @@ public class ChangingRoom : Script
         menuModel.RefreshIndex();
         menuMain.BindMenuToItem(menuModel, menuItemModel);
 
-        // old interface, to be removed
-        _hotstrings = new Dictionary<string, Action<string[]>>();
-        _hotstrings.Add("set_component_variation", ActionSetComponentVariation);
-        _hotkeys = new Dictionary<Keys, Action>();
-        _hotkeys.Add(Keys.Decimal, () =>
-        {
-            string result = Game.GetUserInput(80);
-            if (result == null)
-                return;
-            String[] command = result.Split(' '); ;
-            if (_hotstrings.ContainsKey(command[0]))
-                _hotstrings[command[0]](command.Skip(1).ToArray());
-            else
-                UI.Notify("unknown command");
-        });
+        menuOutfit = new UIMenu("Changing Room", "Outfit Categories");
+        _menuPool.Add(menuOutfit);
+        foreach (ComponentId componentId in Enum.GetValues(typeof(ComponentId)))
+            foreach (ComponentWhat componentWhat in Enum.GetValues(typeof(ComponentWhat)))
+                AddComponentToMenuOutfit(componentId, componentWhat);
+        menuOutfit.OnListChange += outfitOnListChange;
+        menuOutfit.RefreshIndex();
+        menuMain.BindMenuToItem(menuOutfit, menuItemOutfit);
+
+        menuMain.OnItemSelect += mainOnItemSelect;
     }
 
     private void onTick(object sender, EventArgs e)
@@ -131,12 +144,23 @@ public class ChangingRoom : Script
     private void onKeyUp(object sender, KeyEventArgs e)
     {
         if (e.KeyCode == Keys.F5 && !_menuPool.IsAnyMenuOpen())
-        {
             menuMain.Visible = !menuMain.Visible;
-        }
+    }
 
-        foreach (var hotkey in _hotkeys.Keys.Where(hotkey => e.KeyCode == hotkey))
-            _hotkeys[hotkey]();
+    public void mainOnItemSelect(UIMenu sender, UIMenuItem selectedItem, int index)
+    {
+        if (selectedItem.Text == "Change Outfit")
+        {
+            // we need to get the ids of every item and set the list indices accordingly
+            foreach(UIMenuListItem item in sender.Children[selectedItem].MenuItems)
+            {
+                var itemParts = item.Text.Split(' ');
+                var componentId = _componentid[itemParts[0]];
+                var componentWhat = _componentwhat[itemParts[1]];
+                var id = GetPedVariation(componentId, componentWhat);
+                item.Index = id;
+            }
+        }
     }
 
     public void modelOnItemSelect(UIMenu sender, UIMenuItem selectedItem, int index)
@@ -163,44 +187,40 @@ public class ChangingRoom : Script
         characterModel.MarkAsNoLongerNeeded();
     }
 
-    public void ActionSetComponentVariation(string[] args)
+    public int GetNumPedVariations(ComponentId componentId, ComponentWhat componentWhat)
     {
-        if (args.Count() != 3)
+        GTA.Native.Hash hash = (componentWhat == ComponentWhat.Drawable) ? Hash.GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS : Hash.GET_NUMBER_OF_PED_TEXTURE_VARIATIONS;
+        return Function.Call<int>(hash, Game.Player.Character.Handle, (int)componentId);
+    }
+
+    public int GetPedVariation(ComponentId componentId, ComponentWhat componentWhat)
+    {
+        GTA.Native.Hash hash = (componentWhat == ComponentWhat.Drawable) ? Hash.GET_PED_DRAWABLE_VARIATION : Hash.GET_PED_TEXTURE_VARIATION;
+        return Function.Call<int>(hash, Game.Player.Character.Handle, (int)componentId);
+    }
+
+    public void outfitOnListChange(UIMenu sender, UIMenuListItem listItem, int newIndex)
+    {
+        var itemParts = listItem.Text.Split(' ');
+        ComponentId componentId = _componentid[itemParts[0]];
+        ComponentWhat componentWhat = _componentwhat[itemParts[1]];
+        int id = int.Parse(listItem.IndexToItem(newIndex).ToString());
+        var currentId = new Dictionary<ComponentWhat, int>
         {
-            UI.Notify("expected component, drawable id, and texture id");
-            return;
-        }
-        ComponentId componentId;
-        int drawableId;
-        int textureId;
-        if (!ComponentId.TryParse(args[0], out componentId))
+            { ComponentWhat.Drawable, GetPedVariation(componentId, ComponentWhat.Drawable) },
+            { ComponentWhat.Texture, GetPedVariation(componentId, ComponentWhat.Texture) },
+        };
+        // we need to ensure that the new id is valid as the menu has more items than number of ids supported by the game
+        // GET_NUMBER_OF_PED_..._VARIATIONS sometimes returns 0, in this case there is also exactly one variation
+        var num = Math.Max(0, GetNumPedVariations(componentId, componentWhat) - 1);
+        if (id > num)
         {
-            UI.Notify("invalid component id");
-            return;
+            // wrap the index depending on whether user scrolled forward or backward
+            id = (listItem.Index == NUM_COMPONENT_WHAT[componentWhat] - 1) ? num : 0;
+            listItem.Index = id;
         }
-        if (!int.TryParse(args[1], out drawableId))
-        {
-            UI.Notify("invalid drawable id");
-            return;
-        }
-        if (!int.TryParse(args[2], out textureId))
-        {
-            UI.Notify("invalid texture id");
-            return;
-        }
-        var drawableNum = Function.Call<int>(Hash.GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS, Game.Player.Character.Handle, (int)componentId);
-        var textureNum = Function.Call<int>(Hash.GET_NUMBER_OF_PED_TEXTURE_VARIATIONS, Game.Player.Character.Handle, (int)componentId);
-        if (drawableId >= drawableNum || drawableId < 0)
-        {
-            UI.Notify(String.Format("drawable id range is 0 - {0}", drawableNum - 1));
-            return;
-        }
-        if (textureId >= textureNum || textureId < 0)
-        {
-            UI.Notify(String.Format("texture id range is 0 - {0}", textureNum - 1));
-            return;
-        }
-        NativeSetComponentVariation(componentId, drawableId, textureId);
+        currentId[componentWhat] = id;
+        NativeSetComponentVariation(componentId, currentId[ComponentWhat.Drawable], currentId[ComponentWhat.Texture]);
     }
 
     public void NativeSetComponentVariation(ComponentId componentId, int drawableId, int textureId)
