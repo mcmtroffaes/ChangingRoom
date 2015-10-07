@@ -61,15 +61,13 @@ public class ChangingRoom : Script
     private readonly Dictionary<string, ComponentWhat> _componentwhat;
 
     private UIMenu menuMain;
-    private UIMenu menuModel;
-    private UIMenu menuOutfit;
     private MenuPool _menuPool;
 
-    public void AddCategoryToMenuModel(string name, PedHash[] models)
+    public void AddCategoryToMenu(UIMenu menu, string name, PedHash[] models)
     {
         var submenu = new UIMenu("Changing Room", name);
         var menuItem = new UIMenuItem(name);
-        menuModel.AddItem(menuItem);
+        menu.AddItem(menuItem);
         _menuPool.Add(submenu);
         foreach (PedHash model in models)
         {
@@ -77,17 +75,17 @@ public class ChangingRoom : Script
             submenu.AddItem(subitem);
         }
         submenu.RefreshIndex();
-        menuModel.BindMenuToItem(submenu, menuItem);
+        menu.BindMenuToItem(submenu, menuItem);
         submenu.OnItemSelect += modelOnItemSelect;
     }
 
-    public void AddComponentToMenuOutfit(ComponentId componentId, ComponentWhat componentWhat)
+    public void AddComponentToMenu(UIMenu menu, ComponentId componentId, ComponentWhat componentWhat)
     {
         var menuItem = new UIMenuListItem(
             componentId.ToString() + " " + componentWhat.ToString(),
             Enumerable.Range(0, NUM_COMPONENT_WHAT[componentWhat]).Cast<dynamic>().ToList(),
             0);
-        menuOutfit.AddItem(menuItem);
+        menu.AddItem(menuItem);
     }
 
     public ChangingRoom()
@@ -113,18 +111,18 @@ public class ChangingRoom : Script
         menuMain.AddItem(menuItemOutfit);
         menuMain.RefreshIndex();
 
-        menuModel = new UIMenu("Changing Room", "Model Categories");
+        var menuModel = new UIMenu("Changing Room", "Model Categories");
         _menuPool.Add(menuModel);
-        AddCategoryToMenuModel("Player Characters", modelsPlayer);
-        AddCategoryToMenuModel("Mission Characters", modelsMission);
+        AddCategoryToMenu(menuModel, "Player Characters", modelsPlayer);
+        AddCategoryToMenu(menuModel, "Mission Characters", modelsMission);
         menuModel.RefreshIndex();
         menuMain.BindMenuToItem(menuModel, menuItemModel);
 
-        menuOutfit = new UIMenu("Changing Room", "Outfit Categories");
+        var menuOutfit = new UIMenu("Changing Room", "Outfit Categories");
         _menuPool.Add(menuOutfit);
         foreach (ComponentId componentId in Enum.GetValues(typeof(ComponentId)))
             foreach (ComponentWhat componentWhat in Enum.GetValues(typeof(ComponentWhat)))
-                AddComponentToMenuOutfit(componentId, componentWhat);
+                AddComponentToMenu(menuOutfit, componentId, componentWhat);
         menuOutfit.OnListChange += outfitOnListChange;
         menuOutfit.RefreshIndex();
         menuMain.BindMenuToItem(menuOutfit, menuItemOutfit);
