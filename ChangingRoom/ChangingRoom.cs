@@ -232,6 +232,5 @@ public class ChangingRoom : Script
             drawableId,
             textureId,
             2); // 2 = paletteId
-        UI.Notify(String.Format("variation = {0} {1} {2}", componentId, drawableId, textureId));
     }
 }
