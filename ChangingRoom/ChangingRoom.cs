@@ -61,14 +61,14 @@ public class ChangingRoom : Script
     private readonly Dictionary<string, ComponentWhat> _componentwhat;
 
     private UIMenu menuMain;
-    private MenuPool _menuPool;
+    private MenuPool menuPool;
 
     public void AddCategoryToMenu(UIMenu menu, string name, PedHash[] models)
     {
         var submenu = new UIMenu("Changing Room", name);
         var menuItem = new UIMenuItem(name);
         menu.AddItem(menuItem);
-        _menuPool.Add(submenu);
+        menuPool.Add(submenu);
         foreach (PedHash model in models)
         {
             var subitem = new UIMenuItem(model.ToString());
@@ -101,10 +101,10 @@ public class ChangingRoom : Script
         foreach (ComponentId x in Enum.GetValues(typeof(ComponentId))) _componentid[x.ToString()] = x;
         foreach (ComponentWhat x in Enum.GetValues(typeof(ComponentWhat))) _componentwhat[x.ToString()] = x;
 
-        _menuPool = new MenuPool();
+        menuPool = new MenuPool();
 
         menuMain = new UIMenu("Changing Room", "Main Menu");
-        _menuPool.Add(menuMain);
+        menuPool.Add(menuMain);
         var menuItemModel = new UIMenuItem("Change Model");
         menuMain.AddItem(menuItemModel);
         var menuItemOutfit = new UIMenuItem("Change Outfit");
@@ -112,14 +112,14 @@ public class ChangingRoom : Script
         menuMain.RefreshIndex();
 
         var menuModel = new UIMenu("Changing Room", "Model Categories");
-        _menuPool.Add(menuModel);
+        menuPool.Add(menuModel);
         AddCategoryToMenu(menuModel, "Player Characters", modelsPlayer);
         AddCategoryToMenu(menuModel, "Mission Characters", modelsMission);
         menuModel.RefreshIndex();
         menuMain.BindMenuToItem(menuModel, menuItemModel);
 
         var menuOutfit = new UIMenu("Changing Room", "Outfit Categories");
-        _menuPool.Add(menuOutfit);
+        menuPool.Add(menuOutfit);
         foreach (ComponentId componentId in Enum.GetValues(typeof(ComponentId)))
             foreach (ComponentWhat componentWhat in Enum.GetValues(typeof(ComponentWhat)))
                 AddComponentToMenu(menuOutfit, componentId, componentWhat);
@@ -132,7 +132,7 @@ public class ChangingRoom : Script
 
     private void onTick(object sender, EventArgs e)
     {
-        _menuPool.ProcessMenus();
+        menuPool.ProcessMenus();
     }
 
     private void onKeyDown(object sender, KeyEventArgs e)
@@ -141,7 +141,7 @@ public class ChangingRoom : Script
 
     private void onKeyUp(object sender, KeyEventArgs e)
     {
-        if (e.KeyCode == Keys.F5 && !_menuPool.IsAnyMenuOpen())
+        if (e.KeyCode == Keys.F5 && !menuPool.IsAnyMenuOpen())
             menuMain.Visible = !menuMain.Visible;
     }
 
@@ -155,8 +155,12 @@ public class ChangingRoom : Script
                 var itemParts = item.Text.Split(' ');
                 var componentId = _componentid[itemParts[0]];
                 var componentWhat = _componentwhat[itemParts[1]];
+                // set index
                 var id = GetPedVariation(componentId, componentWhat);
                 item.Index = id;
+                // we also gray out any items that have only one option
+                var num = GetNumPedVariations(componentId, componentWhat);
+                item.Enabled = (num >= 2);
             }
         }
     }
