@@ -10,6 +10,8 @@ public static class ChangingRoomPeds
 {
 
     public static PedHash[] modelsPlayerCharacters = {
+        PedHash.FreemodeFemale01, // added here for convenience
+        PedHash.FreemodeMale01, // added here for convenience
         PedHash.Michael,
         PedHash.Franklin,
         PedHash.Trevor,
@@ -313,8 +315,8 @@ public static class ChangingRoomPeds
         PedHash.FibSec01,
         PedHash.FilmDirector,
         PedHash.Finguru01,
-        PedHash.FreemodeFemale01,
-        PedHash.FreemodeMale01,
+        //PedHash.FreemodeFemale01, // added to player characters
+        //PedHash.FreemodeMale01, // added to player characters
         PedHash.Glenstank01,
         PedHash.Griff01,
         PedHash.Guido01,
@@ -755,13 +757,13 @@ public static class ChangingRoomPeds
     public static List<Tuple<string, PedHash[]>> peds = new List<Tuple<string, PedHash[]>>
     {
         Tuple.Create("Player Characters", modelsPlayerCharacters),
+        Tuple.Create("Animals", modelsAnimals),
         Tuple.Create("Mission Characters (A-E)", modelsMissionCharactersAE),
         Tuple.Create("Mission Characters (F-L)", modelsMissionCharactersFL),
         Tuple.Create("Mission Characters (M-O)", modelsMissionCharactersMO),
         Tuple.Create("Mission Characters (P-S)", modelsMissionCharactersPS),
         Tuple.Create("Mission Characters (T-Z)", modelsMissionCharactersTZ),
         Tuple.Create("Mission Characters (Cutscene)", modelsMissionCharactersCutscene),
-        Tuple.Create("Animals", modelsAnimals),
         Tuple.Create("Unique Pedestrians (A-E)", modelsUniquePedestriansAE),
         Tuple.Create("Unique Pedestrians (F-L)", modelsUniquePedestriansFL),
         Tuple.Create("Unique Pedestrians (M-Q)", modelsUniquePedestriansMQ),

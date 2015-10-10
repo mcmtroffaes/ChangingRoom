@@ -30,26 +30,6 @@ public enum ComponentWhat
 
 public class ChangingRoom : Script
 {
-    public static PedHash[] modelsPlayer = {
-        PedHash.Michael,
-        PedHash.Franklin,
-        PedHash.Trevor,
-    };
-
-    public static PedHash[] modelsMission = {
-        PedHash.Abigail,
-        PedHash.AmandaTownley,
-        PedHash.Andreas,
-        PedHash.Ashley,
-        PedHash.Ballasog,
-        PedHash.Bankman,
-        PedHash.Barry,
-        PedHash.Bestmen,
-        PedHash.Beverly,
-        PedHash.Brad,
-        PedHash.Bride,
-    };
-
     public static Dictionary<ComponentWhat, int> NUM_COMPONENT_WHAT = new Dictionary<ComponentWhat, int>
     {
         { ComponentWhat.Drawable, 50 },
@@ -113,8 +93,8 @@ public class ChangingRoom : Script
 
         var menuModel = new UIMenu("Changing Room", "Model Categories");
         menuPool.Add(menuModel);
-        AddCategoryToMenu(menuModel, "Player Characters", modelsPlayer);
-        AddCategoryToMenu(menuModel, "Mission Characters", modelsMission);
+        foreach (var item in ChangingRoomPeds.peds)
+            AddCategoryToMenu(menuModel, item.Item1, item.Item2);
         menuModel.RefreshIndex();
         menuMain.BindMenuToItem(menuModel, menuItemModel);
 
