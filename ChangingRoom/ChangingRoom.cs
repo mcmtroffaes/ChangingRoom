@@ -208,11 +208,22 @@ public class ChangingRoom : Script
                 var componentId = _componentid[itemParts[0]];
                 var componentWhat = _componentwhat[itemParts[1]];
                 // set index
-                var id = NativeGetPedVariation(componentId, componentWhat);
-                item.Index = id;
                 // we also gray out any items that have only one option
-                var num = NativeGetNumPedVariations(componentId, componentWhat);
-                item.Enabled = (num >= 2);
+                if (componentWhat == ComponentWhat.Drawable)
+                {
+                    var drawableId = NativeGetPedDrawableVariation(componentId);
+                    item.Index = drawableId;
+                    var num = NativeGetNumPedDrawableVariations(componentId);
+                    item.Enabled = (num >= 2);
+                }
+                else
+                {
+                    var textureId = NativeGetPedTextureVariation(componentId);
+                    item.Index = textureId;
+                    var drawableId = NativeGetPedDrawableVariation(componentId);
+                    var num = NativeGetNumPedTextureVariations(componentId, drawableId);
+                    item.Enabled = (num >= 2);
+                }
             }
         }
     }
@@ -220,25 +231,35 @@ public class ChangingRoom : Script
     public void OnListChangeOutfit(UIMenu sender, UIMenuListItem listItem, int newIndex)
     {
         var itemParts = listItem.Text.Split(' ');
-        ComponentId componentId = _componentid[itemParts[0]];
-        ComponentWhat componentWhat = _componentwhat[itemParts[1]];
-        int id = newIndex;
-        var currentId = new Dictionary<ComponentWhat, int>
-        {
-            { ComponentWhat.Drawable, NativeGetPedVariation(componentId, ComponentWhat.Drawable) },
-            { ComponentWhat.Texture, NativeGetPedVariation(componentId, ComponentWhat.Texture) },
-        };
+        var componentId = _componentid[itemParts[0]];
+        var componentWhat = _componentwhat[itemParts[1]];
+        var id = newIndex;
+        var drawableId = NativeGetPedDrawableVariation(componentId);
+        var textureId = NativeGetPedTextureVariation(componentId);
+        var drawableNum = NativeGetNumPedDrawableVariations(componentId);
+        var textureNum = NativeGetNumPedTextureVariations(componentId, drawableId);
         // we need to ensure that the new id is valid as the menu has more items than number of ids supported by the game
+        var num = (componentWhat == ComponentWhat.Drawable) ? drawableNum : textureNum;
         // GET_NUMBER_OF_PED_..._VARIATIONS sometimes returns 0, in this case there is also exactly one variation
-        var num = Math.Max(0, NativeGetNumPedVariations(componentId, componentWhat) - 1);
-        if (id > num)
+        var maxid = Math.Max(0, num - 1);
+        if (id > maxid)
         {
             // wrap the index depending on whether user scrolled forward or backward
-            id = (listItem.Index == UI_LIST_MAX - 1) ? num : 0;
+            id = (listItem.Index == UI_LIST_MAX - 1) ? maxid : 0;
             listItem.Index = id;
         }
-        currentId[componentWhat] = id;
-        NativeSetComponentVariation((int)componentId, currentId[ComponentWhat.Drawable], currentId[ComponentWhat.Texture]);
+        if (componentWhat == ComponentWhat.Drawable)
+            drawableId = id;
+        else
+            textureId = id;
+        NativeSetComponentVariation((int)componentId, drawableId, textureId);
+        // when changing drawableId, the texture item might need to be enabled or disabled
+        // because textureNum depends on both componentId and drawableId
+        if (componentWhat == ComponentWhat.Drawable)
+            // TODO is there a better way to get to the next sibling of listItem?
+            foreach (UIMenuListItem item in sender.MenuItems)
+                if (item.Text == itemParts[0] + " Texture")
+                    item.Enabled = (textureNum >= 2);
     }
 
     public void OnItemSelectCompvar(UIMenu sender, UIMenuItem selectedItem, int index)
@@ -269,16 +290,26 @@ public class ChangingRoom : Script
         model.MarkAsNoLongerNeeded();
     }
 
-    public int NativeGetNumPedVariations(ComponentId componentId, ComponentWhat componentWhat)
+    public int NativeGetNumPedDrawableVariations(ComponentId componentId)
     {
-        GTA.Native.Hash hash = (componentWhat == ComponentWhat.Drawable) ? Hash.GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS : Hash.GET_NUMBER_OF_PED_TEXTURE_VARIATIONS;
-        return Function.Call<int>(hash, Game.Player.Character.Handle, (int)componentId);
+        return Function.Call<int>(
+            Hash.GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS, Game.Player.Character.Handle, (int)componentId);
     }
 
-    public int NativeGetPedVariation(ComponentId componentId, ComponentWhat componentWhat)
+    public int NativeGetNumPedTextureVariations(ComponentId componentId, int drawableId)
     {
-        GTA.Native.Hash hash = (componentWhat == ComponentWhat.Drawable) ? Hash.GET_PED_DRAWABLE_VARIATION : Hash.GET_PED_TEXTURE_VARIATION;
-        return Function.Call<int>(hash, Game.Player.Character.Handle, (int)componentId);
+        return Function.Call<int>(
+            Hash.GET_NUMBER_OF_PED_TEXTURE_VARIATIONS, Game.Player.Character.Handle, (int)componentId, drawableId);
+    }
+
+    public int NativeGetPedDrawableVariation(ComponentId componentId)
+    {
+        return Function.Call<int>(Hash.GET_PED_DRAWABLE_VARIATION, Game.Player.Character.Handle, (int)componentId);
+    }
+
+    public int NativeGetPedTextureVariation(ComponentId componentId)
+    {
+        return Function.Call<int>(Hash.GET_PED_TEXTURE_VARIATION, Game.Player.Character.Handle, (int)componentId);
     }
 
     public void NativeSetComponentVariation(int componentId, int drawableId, int textureId)
