@@ -74,7 +74,7 @@ public class ChangingRoom : Script
             submenu.AddItem(subitem);
         }
         submenu.RefreshIndex();
-        submenu.OnItemSelect += OnItemSelectModel;
+        submenu.OnItemSelect += (sender, selectedItem, index) => NativeSetPlayerModel(_pedhash[selectedItem.Text]);
     }
 
     public void AddStorymodeOutfitToMenu(UIMenu menu)
@@ -112,9 +112,9 @@ public class ChangingRoom : Script
         menu.OnItemSelect += (sender, selectedItem, index) =>
         {
             if (selectedItem.Text == "Male")
-                NativeSetPlayerModel(new Model(PedHash.FreemodeMale01));
+                NativeSetPlayerModel(PedHash.FreemodeMale01);
             else if (selectedItem.Text == "Female")
-                NativeSetPlayerModel(new Model(PedHash.FreemodeFemale01));
+                NativeSetPlayerModel(PedHash.FreemodeFemale01);
         };
     }
 
@@ -217,11 +217,6 @@ public class ChangingRoom : Script
         }
     }
 
-    public void OnItemSelectModel(UIMenu sender, UIMenuItem selectedItem, int index)
-    {
-        NativeSetPlayerModel(new Model(_pedhash[selectedItem.Text]));
-    }
-
     public void OnListChangeOutfit(UIMenu sender, UIMenuListItem listItem, int newIndex)
     {
         var itemParts = listItem.Text.Split(' ');
@@ -257,8 +252,9 @@ public class ChangingRoom : Script
         }
     }
 
-    public  void NativeSetPlayerModel(Model model)
+    public  void NativeSetPlayerModel(PedHash hash)
     {
+        var model = new Model(hash);
         model.Request(500);
         if (model.IsInCdImage && model.IsValid)
         {
