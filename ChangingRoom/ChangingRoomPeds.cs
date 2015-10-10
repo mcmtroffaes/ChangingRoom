@@ -10,8 +10,6 @@ public static class ChangingRoomPeds
 {
 
     public static PedHash[] modelsPlayerCharacters = {
-        PedHash.FreemodeFemale01, // added here for convenience
-        PedHash.FreemodeMale01, // added here for convenience
         PedHash.Michael,
         PedHash.Franklin,
         PedHash.Trevor,
@@ -315,8 +313,8 @@ public static class ChangingRoomPeds
         PedHash.FibSec01,
         PedHash.FilmDirector,
         PedHash.Finguru01,
-        //PedHash.FreemodeFemale01, // added to player characters
-        //PedHash.FreemodeMale01, // added to player characters
+        //PedHash.FreemodeFemale01, // handled separately
+        //PedHash.FreemodeMale01, // handled separately
         PedHash.Glenstank01,
         PedHash.Griff01,
         PedHash.Guido01,

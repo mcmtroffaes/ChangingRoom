@@ -30,49 +30,141 @@ public enum ComponentWhat
 
 public class ChangingRoom : Script
 {
-    public static Dictionary<ComponentWhat, int> NUM_COMPONENT_WHAT = new Dictionary<ComponentWhat, int>
-    {
-        { ComponentWhat.Drawable, 50 },
-        { ComponentWhat.Texture, 50 }
-    };
+    static int UI_LIST_MAX = 50;
 
     private readonly Dictionary<string, PedHash> _pedhash;
     private readonly Dictionary<string, ComponentId> _componentid;
     private readonly Dictionary<string, ComponentWhat> _componentwhat;
 
-    private UIMenu menuMain;
     private MenuPool menuPool;
+    private UIMenu menuMain;
+
+    public UIMenu AddSubMenu(UIMenu menu, string name)
+    {
+        var item = new UIMenuItem(name);
+        menu.AddItem(item);
+        var submenu = new UIMenu(menu.Title.Caption, name);
+        menuPool.Add(submenu);
+        menu.BindMenuToItem(submenu, item);
+        return submenu;
+    }
+
+    public void AddStorymodeToMenu(UIMenu menu)
+    {
+        var submenu = AddSubMenu(menu, "Story Mode");
+        AddStorymodeModelToMenu(submenu);
+        AddStorymodeOutfitToMenu(submenu);
+        submenu.RefreshIndex();
+    }
+
+    public void AddStorymodeModelToMenu(UIMenu menu)
+    {
+        var submenu = AddSubMenu(menu, "Change Model");
+        foreach (var pedItem in ChangingRoomPeds.peds)
+            AddCategoryToMenu(submenu, pedItem.Item1, pedItem.Item2);
+        submenu.RefreshIndex();
+    }
 
     public void AddCategoryToMenu(UIMenu menu, string name, PedHash[] models)
     {
-        var submenu = new UIMenu("Changing Room", name);
-        var menuItem = new UIMenuItem(name);
-        menu.AddItem(menuItem);
-        menuPool.Add(submenu);
+        var submenu = AddSubMenu(menu, name);
         foreach (PedHash model in models)
         {
             var subitem = new UIMenuItem(model.ToString());
             submenu.AddItem(subitem);
         }
         submenu.RefreshIndex();
-        menu.BindMenuToItem(submenu, menuItem);
-        submenu.OnItemSelect += modelOnItemSelect;
+        submenu.OnItemSelect += OnItemSelectModel;
+    }
+
+    public void AddStorymodeOutfitToMenu(UIMenu menu)
+    {
+        var submenu = AddSubMenu(menu, "Change Outfit");
+        foreach (ComponentId componentId in Enum.GetValues(typeof(ComponentId)))
+            foreach (ComponentWhat componentWhat in Enum.GetValues(typeof(ComponentWhat)))
+                AddComponentToMenu(submenu, componentId, componentWhat);
+        submenu.RefreshIndex();
+        menu.OnItemSelect += OnItemSelectOutfit;
+        submenu.OnListChange += OnListChangeOutfit;
     }
 
     public void AddComponentToMenu(UIMenu menu, ComponentId componentId, ComponentWhat componentWhat)
     {
-        var menuItem = new UIMenuListItem(
+        var item = new UIMenuListItem(
             componentId.ToString() + " " + componentWhat.ToString(),
-            Enumerable.Range(0, NUM_COMPONENT_WHAT[componentWhat]).Cast<dynamic>().ToList(),
+            Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
             0);
-        menu.AddItem(menuItem);
+        menu.AddItem(item);
+    }
+
+    public void AddFreemodeToMenu(UIMenu menu)
+    {
+        var submenu = AddSubMenu(menu, "Free Mode");
+        AddFreemodeModelToMenu(submenu);
+        AddFreemodeOutfitToMenu(submenu);
+        submenu.RefreshIndex();
+    }
+
+    public void AddFreemodeModelToMenu(UIMenu menu)
+    {
+        menu.AddItem(new UIMenuItem("Male"));
+        menu.AddItem(new UIMenuItem("Female"));
+        menu.OnItemSelect += (sender, selectedItem, index) =>
+        {
+            if (selectedItem.Text == "Male")
+                NativeSetPlayerModel(new Model(PedHash.FreemodeMale01));
+            else if (selectedItem.Text == "Female")
+                NativeSetPlayerModel(new Model(PedHash.FreemodeFemale01));
+        };
+    }
+
+    public void AddFreemodeOutfitToMenu(UIMenu menu)
+    {
+        var submenu = AddSubMenu(menu, "Change Outfit");
+        // TODO needs different component ids
+        foreach (ComponentId componentId in Enum.GetValues(typeof(ComponentId)))
+            foreach (ComponentWhat componentWhat in Enum.GetValues(typeof(ComponentWhat)))
+                AddComponentToMenu(submenu, componentId, componentWhat);
+        submenu.RefreshIndex();
+        menu.OnItemSelect += OnItemSelectOutfit;
+        submenu.OnListChange += OnListChangeOutfit;
+    }
+
+    public void AddExpertmodeToMenu(UIMenu menu)
+    {
+        var submenu = AddSubMenu(menu, "Expert Mode");
+        AddExpertmodeCompvarToMenu(submenu);
+        submenu.RefreshIndex();
+    }
+
+    public void AddExpertmodeCompvarToMenu(UIMenu menu)
+    {
+        var submenu = AddSubMenu(menu, "SET_PED_COMPONENT_VARIATION");
+        submenu.AddItem(
+            new UIMenuListItem(
+                "Component Id",
+                Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
+                0));
+        submenu.AddItem(
+            new UIMenuListItem(
+                "Drawable Id",
+                Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
+                0));
+        submenu.AddItem(
+            new UIMenuListItem(
+                "Texture Id",
+                Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
+                0));
+        submenu.AddItem(new UIMenuItem("Set"));
+        submenu.OnItemSelect += OnItemSelectCompvar;
+        submenu.RefreshIndex();
     }
 
     public ChangingRoom()
     {
-        Tick += onTick;
-        KeyUp += onKeyUp;
-        KeyDown += onKeyDown;
+        Tick += OnTick;
+        KeyUp += OnKeyUp;
+        KeyDown += OnKeyDown;
 
         _pedhash = new Dictionary<string, PedHash>();
         _componentid = new Dictionary<string, ComponentId>();
@@ -82,50 +174,30 @@ public class ChangingRoom : Script
         foreach (ComponentWhat x in Enum.GetValues(typeof(ComponentWhat))) _componentwhat[x.ToString()] = x;
 
         menuPool = new MenuPool();
-
         menuMain = new UIMenu("Changing Room", "Main Menu");
         menuPool.Add(menuMain);
-        var menuItemModel = new UIMenuItem("Change Model");
-        menuMain.AddItem(menuItemModel);
-        var menuItemOutfit = new UIMenuItem("Change Outfit");
-        menuMain.AddItem(menuItemOutfit);
+        AddStorymodeToMenu(menuMain);
+        AddFreemodeToMenu(menuMain);
+        AddExpertmodeToMenu(menuMain);
         menuMain.RefreshIndex();
-
-        var menuModel = new UIMenu("Changing Room", "Model Categories");
-        menuPool.Add(menuModel);
-        foreach (var item in ChangingRoomPeds.peds)
-            AddCategoryToMenu(menuModel, item.Item1, item.Item2);
-        menuModel.RefreshIndex();
-        menuMain.BindMenuToItem(menuModel, menuItemModel);
-
-        var menuOutfit = new UIMenu("Changing Room", "Outfit Categories");
-        menuPool.Add(menuOutfit);
-        foreach (ComponentId componentId in Enum.GetValues(typeof(ComponentId)))
-            foreach (ComponentWhat componentWhat in Enum.GetValues(typeof(ComponentWhat)))
-                AddComponentToMenu(menuOutfit, componentId, componentWhat);
-        menuOutfit.OnListChange += outfitOnListChange;
-        menuOutfit.RefreshIndex();
-        menuMain.BindMenuToItem(menuOutfit, menuItemOutfit);
-
-        menuMain.OnItemSelect += mainOnItemSelect;
     }
 
-    private void onTick(object sender, EventArgs e)
+    private void OnTick(object sender, EventArgs e)
     {
         menuPool.ProcessMenus();
     }
 
-    private void onKeyDown(object sender, KeyEventArgs e)
+    private void OnKeyDown(object sender, KeyEventArgs e)
     {
     }
 
-    private void onKeyUp(object sender, KeyEventArgs e)
+    private void OnKeyUp(object sender, KeyEventArgs e)
     {
         if (e.KeyCode == Keys.F5 && !menuPool.IsAnyMenuOpen())
             menuMain.Visible = !menuMain.Visible;
     }
 
-    public void mainOnItemSelect(UIMenu sender, UIMenuItem selectedItem, int index)
+    public void OnItemSelectOutfit(UIMenu sender, UIMenuItem selectedItem, int index)
     {
         if (selectedItem.Text == "Change Outfit")
         {
@@ -136,81 +208,89 @@ public class ChangingRoom : Script
                 var componentId = _componentid[itemParts[0]];
                 var componentWhat = _componentwhat[itemParts[1]];
                 // set index
-                var id = GetPedVariation(componentId, componentWhat);
+                var id = NativeGetPedVariation(componentId, componentWhat);
                 item.Index = id;
                 // we also gray out any items that have only one option
-                var num = GetNumPedVariations(componentId, componentWhat);
+                var num = NativeGetNumPedVariations(componentId, componentWhat);
                 item.Enabled = (num >= 2);
             }
         }
     }
 
-    public void modelOnItemSelect(UIMenu sender, UIMenuItem selectedItem, int index)
+    public void OnItemSelectModel(UIMenu sender, UIMenuItem selectedItem, int index)
     {
-        var characterModel = new Model(_pedhash[selectedItem.Text]);
-        characterModel.Request(500);
+        NativeSetPlayerModel(new Model(_pedhash[selectedItem.Text]));
+    }
 
-        // Check the model is valid
-        if (characterModel.IsInCdImage && characterModel.IsValid)
+    public void OnListChangeOutfit(UIMenu sender, UIMenuListItem listItem, int newIndex)
+    {
+        var itemParts = listItem.Text.Split(' ');
+        ComponentId componentId = _componentid[itemParts[0]];
+        ComponentWhat componentWhat = _componentwhat[itemParts[1]];
+        int id = newIndex;
+        var currentId = new Dictionary<ComponentWhat, int>
         {
-            // If the model isn't loaded, wait until it is
-            while (!characterModel.IsLoaded) Script.Wait(100);
+            { ComponentWhat.Drawable, NativeGetPedVariation(componentId, ComponentWhat.Drawable) },
+            { ComponentWhat.Texture, NativeGetPedVariation(componentId, ComponentWhat.Texture) },
+        };
+        // we need to ensure that the new id is valid as the menu has more items than number of ids supported by the game
+        // GET_NUMBER_OF_PED_..._VARIATIONS sometimes returns 0, in this case there is also exactly one variation
+        var num = Math.Max(0, NativeGetNumPedVariations(componentId, componentWhat) - 1);
+        if (id > num)
+        {
+            // wrap the index depending on whether user scrolled forward or backward
+            id = (listItem.Index == UI_LIST_MAX - 1) ? num : 0;
+            listItem.Index = id;
+        }
+        currentId[componentWhat] = id;
+        NativeSetComponentVariation((int)componentId, currentId[ComponentWhat.Drawable], currentId[ComponentWhat.Texture]);
+    }
 
-            // Set the player's model
-            Function.Call(Hash.SET_PLAYER_MODEL, Game.Player, characterModel.Hash);
+    public void OnItemSelectCompvar(UIMenu sender, UIMenuItem selectedItem, int index)
+    {
+        if (selectedItem.Text == "Set")
+        {
+            int componentId = ((UIMenuListItem)sender.MenuItems[0]).Index;
+            int drawableId = ((UIMenuListItem)sender.MenuItems[1]).Index;
+            int textureId = ((UIMenuListItem)sender.MenuItems[2]).Index;
+            NativeSetComponentVariation(componentId, drawableId, textureId);
+        }
+    }
+
+    public  void NativeSetPlayerModel(Model model)
+    {
+        model.Request(500);
+        if (model.IsInCdImage && model.IsValid)
+        {
+            while (!model.IsLoaded) Script.Wait(100);
+            Function.Call(Hash.SET_PLAYER_MODEL, Game.Player, model.Hash);
             Function.Call(Hash.SET_PED_DEFAULT_COMPONENT_VARIATION, Game.Player.Character.Handle);
         }
         else
         {
             UI.Notify("could not request model");
         }
-
-        // Delete the model from memory after we've assigned it
-        characterModel.MarkAsNoLongerNeeded();
+        model.MarkAsNoLongerNeeded();
     }
 
-    public int GetNumPedVariations(ComponentId componentId, ComponentWhat componentWhat)
+    public int NativeGetNumPedVariations(ComponentId componentId, ComponentWhat componentWhat)
     {
         GTA.Native.Hash hash = (componentWhat == ComponentWhat.Drawable) ? Hash.GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS : Hash.GET_NUMBER_OF_PED_TEXTURE_VARIATIONS;
         return Function.Call<int>(hash, Game.Player.Character.Handle, (int)componentId);
     }
 
-    public int GetPedVariation(ComponentId componentId, ComponentWhat componentWhat)
+    public int NativeGetPedVariation(ComponentId componentId, ComponentWhat componentWhat)
     {
         GTA.Native.Hash hash = (componentWhat == ComponentWhat.Drawable) ? Hash.GET_PED_DRAWABLE_VARIATION : Hash.GET_PED_TEXTURE_VARIATION;
         return Function.Call<int>(hash, Game.Player.Character.Handle, (int)componentId);
     }
 
-    public void outfitOnListChange(UIMenu sender, UIMenuListItem listItem, int newIndex)
-    {
-        var itemParts = listItem.Text.Split(' ');
-        ComponentId componentId = _componentid[itemParts[0]];
-        ComponentWhat componentWhat = _componentwhat[itemParts[1]];
-        int id = int.Parse(listItem.IndexToItem(newIndex).ToString());
-        var currentId = new Dictionary<ComponentWhat, int>
-        {
-            { ComponentWhat.Drawable, GetPedVariation(componentId, ComponentWhat.Drawable) },
-            { ComponentWhat.Texture, GetPedVariation(componentId, ComponentWhat.Texture) },
-        };
-        // we need to ensure that the new id is valid as the menu has more items than number of ids supported by the game
-        // GET_NUMBER_OF_PED_..._VARIATIONS sometimes returns 0, in this case there is also exactly one variation
-        var num = Math.Max(0, GetNumPedVariations(componentId, componentWhat) - 1);
-        if (id > num)
-        {
-            // wrap the index depending on whether user scrolled forward or backward
-            id = (listItem.Index == NUM_COMPONENT_WHAT[componentWhat] - 1) ? num : 0;
-            listItem.Index = id;
-        }
-        currentId[componentWhat] = id;
-        NativeSetComponentVariation(componentId, currentId[ComponentWhat.Drawable], currentId[ComponentWhat.Texture]);
-    }
-
-    public void NativeSetComponentVariation(ComponentId componentId, int drawableId, int textureId)
+    public void NativeSetComponentVariation(int componentId, int drawableId, int textureId)
     {
         Function.Call(
             Hash.SET_PED_COMPONENT_VARIATION,
             Game.Player.Character.Handle,
-            (int)componentId,
+            componentId,
             drawableId,
             textureId,
             2); // 2 = paletteId
