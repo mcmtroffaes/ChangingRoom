@@ -248,18 +248,27 @@ public class ChangingRoom : Script
             id = (listItem.Index == UI_LIST_MAX - 1) ? maxid : 0;
             listItem.Index = id;
         }
+        var textureNum2 = textureNum;  // new textureNum after changing drawableId (if changed)
         if (componentWhat == ComponentWhat.Drawable)
+        {
             drawableId = id;
+            textureNum2 = NativeGetNumPedTextureVariations(componentId, drawableId);
+            // correct current texture id if it is out of range
+            // we pick the nearest integer
+            if (textureId >= textureNum2) textureId = textureNum2 - 1;
+        }
         else
+        {
             textureId = id;
+        }
         NativeSetComponentVariation((int)componentId, drawableId, textureId);
         // when changing drawableId, the texture item might need to be enabled or disabled
-        // because textureNum depends on both componentId and drawableId
-        if (componentWhat == ComponentWhat.Drawable)
+        // textureNum depends on both componentId and drawableId and may now have changed
+        if (textureNum != textureNum2)
             // TODO is there a better way to get to the next sibling of listItem?
             foreach (UIMenuListItem item in sender.MenuItems)
                 if (item.Text == itemParts[0] + " Texture")
-                    item.Enabled = (textureNum >= 2);
+                    item.Enabled = (textureNum2 >= 2);
     }
 
     public void OnItemSelectCompvar(UIMenu sender, UIMenuItem selectedItem, int index)
