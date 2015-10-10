@@ -3,6 +3,8 @@
 // cat PedHashes.hpp | sed 's/\t//g' | sed 's/\(.*\) = .*/        PedHash.\1,/' | sed 'sX^// \(.*\)XEEENNNUUUMMM\1X' | sed '/EEENNNUUUMMM/ s/ //g' | sed 's/EEENNNUUUMMM\(.*\)/    public static PedHash[] models\1 = {/'
 
 using GTA.Native;
+using System;
+using System.Collections.Generic;
 
 public static class ChangingRoomPeds
 {
@@ -328,7 +330,7 @@ public static class ChangingRoomPeds
         PedHash.Justin,
     };
 
-    public static PedHash[] modelsUniquePedestriansMO = {
+    public static PedHash[] modelsUniquePedestriansMQ = {
         PedHash.Mani,
         PedHash.Markfost,
         PedHash.Marston01,
@@ -339,9 +341,6 @@ public static class ChangingRoomPeds
         PedHash.MovieStar,
         PedHash.MPros01,
         PedHash.Niko01,
-    };
-
-    public static PedHash[] modelsUniquePedestriansPS = {
         PedHash.Paparazzi,
         PedHash.Party01,
         PedHash.PartyTarget,
@@ -354,21 +353,21 @@ public static class ChangingRoomPeds
         PedHash.PrologueHostage01,
         PedHash.PrologueMournFemale01,
         PedHash.PrologueMournMale01,
+    };
+
+    public static PedHash[] modelsUniquePedestriansRZ = {
         PedHash.RivalPaparazzi,
         PedHash.ShopKeep01,
         PedHash.SpyActor,
         PedHash.SpyActress,
         PedHash.StripperLite,
-    };
-
-    public static PedHash[] modelsUniquePedestriansTZ = {
         PedHash.Taphillbilly,
         PedHash.Tramp01,
         PedHash.WillyFist,
         PedHash.Zombie01,
     };
 
-    public static PedHash[] modelsRandomPedestrians = {
+    public static PedHash[] modelsRandomPedestriansA = {
         PedHash.Acult01AMM,
         PedHash.Acult01AMO,
         PedHash.Acult01AMY,
@@ -390,6 +389,9 @@ public static class ChangingRoomPeds
         PedHash.Autoshop01SMM,
         PedHash.Autoshop02SMM,
         PedHash.Azteca01GMY,
+    };
+
+    public static PedHash[] modelsRandomPedestriansB = {
         PedHash.BallaEast01GMY,
         PedHash.BallaOrig01GMY,
         PedHash.Ballas01GFY,
@@ -435,6 +437,9 @@ public static class ChangingRoomPeds
         PedHash.Business03AMY,
         PedHash.Business04AFY,
         PedHash.Busker01SMO,
+    };
+
+    public static PedHash[] modelsRandomPedestriansCD = {
         PedHash.Chef01SMY,
         PedHash.ChemSec01SMM,
         PedHash.ChemWork01GMM,
@@ -461,6 +466,9 @@ public static class ChangingRoomPeds
         PedHash.Downtown01AMY,
         PedHash.DwService01SMY,
         PedHash.DwService02SMY,
+    };
+
+    public static PedHash[] modelsRandomPedestriansEF = {
         PedHash.Eastsa01AFM,
         PedHash.Eastsa01AFY,
         PedHash.Eastsa01AMM,
@@ -490,6 +498,9 @@ public static class ChangingRoomPeds
         PedHash.Fireman01SMY,
         PedHash.Fitness01AFY,
         PedHash.Fitness02AFY,
+    };
+
+    public static PedHash[] modelsRandomPedestriansG = {
         PedHash.Gaffer01SMM,
         PedHash.GarbageSMY,
         PedHash.Gardener01SMM,
@@ -507,6 +518,9 @@ public static class ChangingRoomPeds
         PedHash.Golfer01AMM,
         PedHash.Golfer01AMY,
         PedHash.Grip01SMY,
+    };
+
+    public static PedHash[] modelsRandomPedestriansH = {
         PedHash.Hairdress01SMM,
         PedHash.Hasjew01AMM,
         PedHash.Hasjew01AMY,
@@ -529,6 +543,9 @@ public static class ChangingRoomPeds
         PedHash.Hooker02SFY,
         PedHash.Hooker03SFY,
         PedHash.Hwaycop01SMY,
+    };
+
+    public static PedHash[] modelsRandomPedestriansIL = {
         PedHash.Indian01AFO,
         PedHash.Indian01AFY,
         PedHash.Indian01AMM,
@@ -557,6 +574,9 @@ public static class ChangingRoomPeds
         PedHash.Lost02GMY,
         PedHash.Lost03GMY,
         PedHash.Lsmetro01SMM,
+    };
+
+    public static PedHash[] modelsRandomPedestriansMN = {
         PedHash.Maid01SFM,
         PedHash.Malibu01AMM,
         PedHash.Mariachi01SMM,
@@ -586,6 +606,9 @@ public static class ChangingRoomPeds
         PedHash.Movspace01SMM,
         PedHash.Musclbeac01AMY,
         PedHash.Musclbeac02AMY,
+    };
+
+    public static PedHash[] modelsRandomPedestriansOR = {
         PedHash.OgBoss01AMM,
         PedHash.Paparazzi01AMM,
         PedHash.Paramedic01SMM,
@@ -614,6 +637,9 @@ public static class ChangingRoomPeds
         PedHash.Runner02AMY,
         PedHash.Rurmeth01AFY,
         PedHash.Rurmeth01AMM,
+    };
+
+    public static PedHash[] modelsRandomPedestriansS = {
         PedHash.Salton01AFM,
         PedHash.Salton01AFO,
         PedHash.Salton01AMM,
@@ -685,6 +711,9 @@ public static class ChangingRoomPeds
         PedHash.Swat01SMY,
         PedHash.Sweatshop01SFM,
         PedHash.Sweatshop01SFY,
+    };
+
+    public static PedHash[] modelsRandomPedestriansTZ = {
         PedHash.Tattoo01AMO,
         PedHash.Tennis01AFY,
         PedHash.Tennis01AMM,
@@ -722,4 +751,32 @@ public static class ChangingRoomPeds
         PedHash.Yoga01AFY,
         PedHash.Yoga01AMY,
     };
+
+    public static List<Tuple<string, PedHash[]>> peds = new List<Tuple<string, PedHash[]>>
+    {
+        Tuple.Create("Player Characters", modelsPlayerCharacters),
+        Tuple.Create("Mission Characters (A-E)", modelsMissionCharactersAE),
+        Tuple.Create("Mission Characters (F-L)", modelsMissionCharactersFL),
+        Tuple.Create("Mission Characters (M-O)", modelsMissionCharactersMO),
+        Tuple.Create("Mission Characters (P-S)", modelsMissionCharactersPS),
+        Tuple.Create("Mission Characters (T-Z)", modelsMissionCharactersTZ),
+        Tuple.Create("Mission Characters (Cutscene)", modelsMissionCharactersCutscene),
+        Tuple.Create("Animals", modelsAnimals),
+        Tuple.Create("Unique Pedestrians (A-E)", modelsUniquePedestriansAE),
+        Tuple.Create("Unique Pedestrians (F-L)", modelsUniquePedestriansFL),
+        Tuple.Create("Unique Pedestrians (M-Q)", modelsUniquePedestriansMQ),
+        Tuple.Create("Unique Pedestrians (R-Z)", modelsUniquePedestriansRZ),
+        Tuple.Create("Random Pedestrians (A)", modelsRandomPedestriansA),
+        Tuple.Create("Random Pedestrians (B)", modelsRandomPedestriansB),
+        Tuple.Create("Random Pedestrians (C-D)", modelsRandomPedestriansCD),
+        Tuple.Create("Random Pedestrians (E-F)", modelsRandomPedestriansEF),
+        Tuple.Create("Random Pedestrians (G)", modelsRandomPedestriansG),
+        Tuple.Create("Random Pedestrians (H)", modelsRandomPedestriansH),
+        Tuple.Create("Random Pedestrians (I-L)", modelsRandomPedestriansIL),
+        Tuple.Create("Random Pedestrians (M-N)", modelsRandomPedestriansMN),
+        Tuple.Create("Random Pedestrians (O-R)", modelsRandomPedestriansOR),
+        Tuple.Create("Random Pedestrians (S)", modelsRandomPedestriansS),
+        Tuple.Create("Random Pedestrians (T-Z)", modelsRandomPedestriansTZ),
+    };
+
 }
