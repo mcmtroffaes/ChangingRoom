@@ -151,6 +151,7 @@ public class ChangingRoom : Script
     {
         var submenu = AddSubMenu(menu, "Expert Mode");
         AddExpertmodeCompvarToMenu(submenu);
+        AddExpertmodeComprandomToMenu(submenu);
         submenu.RefreshIndex();
     }
 
@@ -186,7 +187,7 @@ public class ChangingRoom : Script
                 var drawableId = ((UIMenuListItem)sender.MenuItems[1]).Index;
                 var textureId = ((UIMenuListItem)sender.MenuItems[2]).Index;
                 var paletteId = ((UIMenuListItem)sender.MenuItems[3]).Index;
-                NativeSetComponentVariation(componentId, drawableId, textureId, paletteId);
+                NativeSetPedComponentVariation(componentId, drawableId, textureId, paletteId);
             }
             else
             {
@@ -198,6 +199,16 @@ public class ChangingRoom : Script
             }
         };
         submenu.RefreshIndex();
+    }
+
+    public void AddExpertmodeComprandomToMenu(UIMenu menu)
+    {
+        menu.AddItem(new UIMenuItem("SET_PED_RANDOM_COMPONENT_VARIATION"));
+        menu.OnItemSelect += (sender, item, index) =>
+        {
+            // argument seems to have no effect
+            if (item.Text == "SET_PED_RANDOM_COMPONENT_VARIATION") NativeSetPedRandomComponentVariation(false);
+        };
     }
 
     public ChangingRoom()
@@ -290,7 +301,7 @@ public class ChangingRoom : Script
             textureId = id;
         }
         var paletteId = 2;  // reasonable default
-        NativeSetComponentVariation((int)componentId, drawableId, textureId, paletteId);
+        NativeSetPedComponentVariation((int)componentId, drawableId, textureId, paletteId);
         // when changing drawableId, the texture item might need to be enabled or disabled
         // textureNum depends on both componentId and drawableId and may now have changed
         if (textureNum != textureNum2)
@@ -344,7 +355,7 @@ public class ChangingRoom : Script
         return Function.Call<int>(Hash.GET_PED_PALETTE_VARIATION, Game.Player.Character.Handle, (int)componentId);
     }
 
-    public void NativeSetComponentVariation(int componentId, int drawableId, int textureId, int paletteId)
+    public void NativeSetPedComponentVariation(int componentId, int drawableId, int textureId, int paletteId)
     {
         Function.Call(
             Hash.SET_PED_COMPONENT_VARIATION,
@@ -353,5 +364,10 @@ public class ChangingRoom : Script
             drawableId,
             textureId,
             paletteId);
+    }
+
+    public void NativeSetPedRandomComponentVariation(bool toggle)
+    {
+        Function.Call(Hash.SET_PED_RANDOM_COMPONENT_VARIATION, Game.Player.Character.Handle, toggle);
     }
 }
