@@ -56,7 +56,6 @@ public class ChangingRoom : Script
     private readonly Dictionary<string, ComponentWhat> _componentwhat;
 
     private MenuPool menuPool;
-    private UIMenu menuMain;
 
     public UIMenu AddSubMenu(UIMenu menu, string name)
     {
@@ -189,9 +188,20 @@ public class ChangingRoom : Script
 
     public ChangingRoom()
     {
-        Tick += OnTick;
-        KeyUp += OnKeyUp;
-        KeyDown += OnKeyDown;
+        menuPool = new MenuPool();
+        var menuMain = new UIMenu("Changing Room", "Main Menu");
+        menuPool.Add(menuMain);
+        AddStorymodeToMenu(menuMain);
+        AddFreemodeToMenu(menuMain);
+        AddExpertmodeToMenu(menuMain);
+        menuMain.RefreshIndex();
+
+        Tick += (sender, e) => menuPool.ProcessMenus();
+        KeyUp += (sender, e) =>
+        {
+            if (e.KeyCode == Keys.F5 && !menuPool.IsAnyMenuOpen())
+                menuMain.Visible = !menuMain.Visible;
+        };
 
         _pedhash = new Dictionary<string, PedHash>();
         _componentid = new Dictionary<string, ComponentId>();
@@ -199,29 +209,6 @@ public class ChangingRoom : Script
         foreach (PedHash x in Enum.GetValues(typeof(PedHash))) _pedhash[x.ToString()] = x;
         foreach (ComponentId x in Enum.GetValues(typeof(ComponentId))) _componentid[x.ToString()] = x;
         foreach (ComponentWhat x in Enum.GetValues(typeof(ComponentWhat))) _componentwhat[x.ToString()] = x;
-
-        menuPool = new MenuPool();
-        menuMain = new UIMenu("Changing Room", "Main Menu");
-        menuPool.Add(menuMain);
-        AddStorymodeToMenu(menuMain);
-        AddFreemodeToMenu(menuMain);
-        AddExpertmodeToMenu(menuMain);
-        menuMain.RefreshIndex();
-    }
-
-    private void OnTick(object sender, EventArgs e)
-    {
-        menuPool.ProcessMenus();
-    }
-
-    private void OnKeyDown(object sender, KeyEventArgs e)
-    {
-    }
-
-    private void OnKeyUp(object sender, KeyEventArgs e)
-    {
-        if (e.KeyCode == Keys.F5 && !menuPool.IsAnyMenuOpen())
-            menuMain.Visible = !menuMain.Visible;
     }
 
     public void OnItemSelectOutfit(UIMenu sender, UIMenuItem selectedItem, int index)
