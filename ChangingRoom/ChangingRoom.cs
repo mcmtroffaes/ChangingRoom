@@ -49,7 +49,7 @@ public enum ComponentWhat
 
 public class ChangingRoom : Script
 {
-    static int UI_LIST_MAX = 50;
+    static int UI_LIST_MAX = 100;
 
     private readonly Dictionary<string, PedHash> _pedhash;
     private readonly Dictionary<string, ComponentId> _componentid;
@@ -168,14 +168,22 @@ public class ChangingRoom : Script
             new UIMenuListItem(
                 "Drawable Id",
                 Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
-                0));
+                NativeGetPedDrawableVariation(0)));
         submenu.AddItem(
             new UIMenuListItem(
                 "Texture Id",
                 Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
-                0));
-        submenu.AddItem(new UIMenuItem("Set"));
-        submenu.OnItemSelect += OnItemSelectCompvar;
+                NativeGetPedTextureVariation(0)));
+        submenu.OnListChange += (sender, item, index) =>
+        {
+            if (item.Text != "Component Id")
+            {
+                var componentId = ((UIMenuListItem)sender.MenuItems[0]).Index;
+                var drawableId = ((UIMenuListItem)sender.MenuItems[1]).Index;
+                var textureId = ((UIMenuListItem)sender.MenuItems[2]).Index;
+                NativeSetComponentVariation(componentId, drawableId, textureId);
+            }
+        };
         submenu.RefreshIndex();
     }
 
@@ -288,17 +296,6 @@ public class ChangingRoom : Script
             foreach (UIMenuListItem item in sender.MenuItems)
                 if (item.Text == itemParts[0] + " Texture")
                     item.Enabled = (textureNum2 >= 2);
-    }
-
-    public void OnItemSelectCompvar(UIMenu sender, UIMenuItem selectedItem, int index)
-    {
-        if (selectedItem.Text == "Set")
-        {
-            int componentId = ((UIMenuListItem)sender.MenuItems[0]).Index;
-            int drawableId = ((UIMenuListItem)sender.MenuItems[1]).Index;
-            int textureId = ((UIMenuListItem)sender.MenuItems[2]).Index;
-            NativeSetComponentVariation(componentId, drawableId, textureId);
-        }
     }
 
     public  void NativeSetPlayerModel(PedHash hash)
