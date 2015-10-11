@@ -92,7 +92,7 @@ public class ChangingRoom : Script
             submenu.AddItem(subitem);
         }
         submenu.RefreshIndex();
-        submenu.OnItemSelect += (sender, selectedItem, index) => NativeSetPlayerModel(_pedhash[selectedItem.Text]);
+        submenu.OnItemSelect += (sender, item, index) => NativeSetPlayerModel(_pedhash[item.Text]);
     }
 
     public void AddStorymodeOutfitToMenu(UIMenu menu)
@@ -108,11 +108,10 @@ public class ChangingRoom : Script
 
     public void AddComponentToMenu(UIMenu menu, ComponentId componentId, ComponentWhat componentWhat)
     {
-        var item = new UIMenuListItem(
+        menu.AddItem(new UIMenuListItem(
             componentId.ToString() + " " + componentWhat.ToString(),
             Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
-            0);
-        menu.AddItem(item);
+            0));
     }
 
     public void AddFreemodeToMenu(UIMenu menu)
@@ -127,11 +126,11 @@ public class ChangingRoom : Script
     {
         menu.AddItem(new UIMenuItem("Male"));
         menu.AddItem(new UIMenuItem("Female"));
-        menu.OnItemSelect += (sender, selectedItem, index) =>
+        menu.OnItemSelect += (sender, item, index) =>
         {
-            if (selectedItem.Text == "Male")
+            if (item.Text == "Male")
                 NativeSetPlayerModel(PedHash.FreemodeMale01);
-            else if (selectedItem.Text == "Female")
+            else if (item.Text == "Female")
                 NativeSetPlayerModel(PedHash.FreemodeFemale01);
         };
     }
