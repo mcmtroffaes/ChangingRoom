@@ -67,12 +67,16 @@ public class ChangingRoom : Script
         return submenu;
     }
 
+    public void RefreshIndex()
+    {
+        foreach (UIMenu menu in menuPool.ToList()) menu.RefreshIndex();
+    }
+
     public void AddStorymodeToMenu(UIMenu menu)
     {
         var submenu = AddSubMenu(menu, "Story Mode");
         AddStorymodeModelToMenu(submenu);
         AddStorymodeOutfitToMenu(submenu);
-        submenu.RefreshIndex();
     }
 
     public void AddStorymodeModelToMenu(UIMenu menu)
@@ -80,7 +84,6 @@ public class ChangingRoom : Script
         var submenu = AddSubMenu(menu, "Change Model");
         foreach (var pedItem in ChangingRoomPeds.peds)
             AddCategoryToMenu(submenu, pedItem.Item1, pedItem.Item2);
-        submenu.RefreshIndex();
     }
 
     public void AddCategoryToMenu(UIMenu menu, string name, PedHash[] models)
@@ -91,7 +94,6 @@ public class ChangingRoom : Script
             var subitem = new UIMenuItem(model.ToString());
             submenu.AddItem(subitem);
         }
-        submenu.RefreshIndex();
         submenu.OnItemSelect += (sender, item, index) => NativeSetPlayerModel(_pedhash[item.Text]);
     }
 
@@ -101,7 +103,6 @@ public class ChangingRoom : Script
         foreach (ComponentId componentId in Enum.GetValues(typeof(ComponentId)))
             foreach (ComponentWhat componentWhat in Enum.GetValues(typeof(ComponentWhat)))
                 AddComponentToMenu(submenu, componentId, componentWhat);
-        submenu.RefreshIndex();
         menu.OnItemSelect += OnItemSelectOutfit;
         submenu.OnListChange += OnListChangeOutfit;
     }
@@ -119,7 +120,6 @@ public class ChangingRoom : Script
         var submenu = AddSubMenu(menu, "Free Mode");
         AddFreemodeModelToMenu(submenu);
         AddFreemodeOutfitToMenu(submenu);
-        submenu.RefreshIndex();
     }
 
     public void AddFreemodeModelToMenu(UIMenu menu)
@@ -142,7 +142,6 @@ public class ChangingRoom : Script
         foreach (ComponentId componentId in Enum.GetValues(typeof(ComponentId)))
             foreach (ComponentWhat componentWhat in Enum.GetValues(typeof(ComponentWhat)))
                 AddComponentToMenu(submenu, componentId, componentWhat);
-        submenu.RefreshIndex();
         menu.OnItemSelect += OnItemSelectOutfit;
         submenu.OnListChange += OnListChangeOutfit;
     }
@@ -152,7 +151,6 @@ public class ChangingRoom : Script
         var submenu = AddSubMenu(menu, "Expert Mode");
         AddExpertmodeCompvarToMenu(submenu);
         AddExpertmodeComprandomToMenu(submenu);
-        submenu.RefreshIndex();
     }
 
     public void AddExpertmodeCompvarToMenu(UIMenu menu)
@@ -198,7 +196,6 @@ public class ChangingRoom : Script
                 ((UIMenuListItem)sender.MenuItems[3]).Index = NativeGetPedPaletteVariation(componentId);
             }
         };
-        submenu.RefreshIndex();
     }
 
     public void AddExpertmodeComprandomToMenu(UIMenu menu)
@@ -219,7 +216,7 @@ public class ChangingRoom : Script
         AddStorymodeToMenu(menuMain);
         AddFreemodeToMenu(menuMain);
         AddExpertmodeToMenu(menuMain);
-        menuMain.RefreshIndex();
+        RefreshIndex();
 
         Tick += (sender, e) => menuPool.ProcessMenus();
         KeyUp += (sender, e) =>
@@ -320,6 +317,26 @@ public class ChangingRoom : Script
             while (!model.IsLoaded) Script.Wait(100);
             Function.Call(Hash.SET_PLAYER_MODEL, Game.Player, model.Hash);
             Function.Call(Hash.SET_PED_DEFAULT_COMPONENT_VARIATION, Game.Player.Character.Handle);
+            // pick a better basis for editing the freemode characters
+            // until we have a better way of creating valid combinations
+            if (hash == PedHash.FreemodeFemale01)
+            {
+                NativeSetPedComponentVariation(2, 4, 3, 0);
+                NativeSetPedComponentVariation(3, 15, 0, 0);
+                NativeSetPedComponentVariation(4, 15, 0, 0);
+                NativeSetPedComponentVariation(6, 5, 0, 0);
+                NativeSetPedComponentVariation(8, 2, 0, 0);
+                NativeSetPedComponentVariation(11, 15, 0, 0);
+            }
+            else if (hash == PedHash.FreemodeMale01)
+            {
+                NativeSetPedComponentVariation(2, 10, 1, 0);
+                NativeSetPedComponentVariation(3, 15, 0, 0);
+                NativeSetPedComponentVariation(4, 14, 0, 0);
+                NativeSetPedComponentVariation(6, 2, 6, 0);
+                NativeSetPedComponentVariation(8, 57, 0, 0);
+                NativeSetPedComponentVariation(11, 15, 0, 0);
+            }
         }
         else
         {
