@@ -6,7 +6,7 @@ using System.Runtime.InteropServices;
 // set of attributes. Change these attribute values to modify the information
 // associated with an assembly.
 [assembly: AssemblyTitle("ChangingRoom")]
-[assembly: AssemblyDescription("")]
+[assembly: AssemblyDescription("a GTA V Mod for changing models and outfits")]
 [assembly: AssemblyConfiguration("")]
 [assembly: AssemblyCompany("")]
 [assembly: AssemblyProduct("ChangingRoom")]
