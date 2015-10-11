@@ -172,14 +172,29 @@ public class ChangingRoom : Script
                 "Texture Id",
                 Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
                 NativeGetPedTextureVariation(0)));
+        submenu.AddItem(
+            new UIMenuListItem(
+                "Palette Id",
+                Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
+                NativeGetPedPaletteVariation(0)));
         submenu.OnListChange += (sender, item, index) =>
         {
             if (item.Text != "Component Id")
             {
+                // changing drawable/texture/palette: update in-game values
                 var componentId = ((UIMenuListItem)sender.MenuItems[0]).Index;
                 var drawableId = ((UIMenuListItem)sender.MenuItems[1]).Index;
                 var textureId = ((UIMenuListItem)sender.MenuItems[2]).Index;
-                NativeSetComponentVariation(componentId, drawableId, textureId);
+                var paletteId = ((UIMenuListItem)sender.MenuItems[3]).Index;
+                NativeSetComponentVariation(componentId, drawableId, textureId, paletteId);
+            }
+            else
+            {
+                // changing component: sync menu indices with in-game drawable/texture/palette
+                var componentId = index;
+                ((UIMenuListItem)sender.MenuItems[1]).Index = NativeGetPedDrawableVariation(componentId);
+                ((UIMenuListItem)sender.MenuItems[2]).Index = NativeGetPedTextureVariation(componentId);
+                ((UIMenuListItem)sender.MenuItems[3]).Index = NativeGetPedPaletteVariation(componentId);
             }
         };
         submenu.RefreshIndex();
@@ -224,17 +239,17 @@ public class ChangingRoom : Script
                 // we also gray out any items that have only one option
                 if (componentWhat == ComponentWhat.Drawable)
                 {
-                    var drawableId = NativeGetPedDrawableVariation(componentId);
+                    var drawableId = NativeGetPedDrawableVariation((int)componentId);
                     item.Index = drawableId;
-                    var num = NativeGetNumPedDrawableVariations(componentId);
+                    var num = NativeGetNumPedDrawableVariations((int)componentId);
                     item.Enabled = (num >= 2);
                 }
                 else
                 {
-                    var textureId = NativeGetPedTextureVariation(componentId);
+                    var textureId = NativeGetPedTextureVariation((int)componentId);
                     item.Index = textureId;
-                    var drawableId = NativeGetPedDrawableVariation(componentId);
-                    var num = NativeGetNumPedTextureVariations(componentId, drawableId);
+                    var drawableId = NativeGetPedDrawableVariation((int)componentId);
+                    var num = NativeGetNumPedTextureVariations((int)componentId, drawableId);
                     item.Enabled = (num >= 2);
                 }
             }
@@ -247,10 +262,10 @@ public class ChangingRoom : Script
         var componentId = _componentid[itemParts[0]];
         var componentWhat = _componentwhat[itemParts[1]];
         var id = newIndex;
-        var drawableId = NativeGetPedDrawableVariation(componentId);
-        var textureId = NativeGetPedTextureVariation(componentId);
-        var drawableNum = NativeGetNumPedDrawableVariations(componentId);
-        var textureNum = NativeGetNumPedTextureVariations(componentId, drawableId);
+        var drawableId = NativeGetPedDrawableVariation((int)componentId);
+        var textureId = NativeGetPedTextureVariation((int)componentId);
+        var drawableNum = NativeGetNumPedDrawableVariations((int)componentId);
+        var textureNum = NativeGetNumPedTextureVariations((int)componentId, drawableId);
         // we need to ensure that the new id is valid as the menu has more items than number of ids supported by the game
         var num = (componentWhat == ComponentWhat.Drawable) ? drawableNum : textureNum;
         // GET_NUMBER_OF_PED_..._VARIATIONS sometimes returns 0, in this case there is also exactly one variation
@@ -265,7 +280,7 @@ public class ChangingRoom : Script
         if (componentWhat == ComponentWhat.Drawable)
         {
             drawableId = id;
-            textureNum2 = NativeGetNumPedTextureVariations(componentId, drawableId);
+            textureNum2 = NativeGetNumPedTextureVariations((int)componentId, drawableId);
             // correct current texture id if it is out of range
             // we pick the nearest integer
             if (textureId >= textureNum2) textureId = textureNum2 - 1;
@@ -274,7 +289,8 @@ public class ChangingRoom : Script
         {
             textureId = id;
         }
-        NativeSetComponentVariation((int)componentId, drawableId, textureId);
+        var paletteId = 2;  // reasonable default
+        NativeSetComponentVariation((int)componentId, drawableId, textureId, paletteId);
         // when changing drawableId, the texture item might need to be enabled or disabled
         // textureNum depends on both componentId and drawableId and may now have changed
         if (textureNum != textureNum2)
@@ -301,29 +317,34 @@ public class ChangingRoom : Script
         model.MarkAsNoLongerNeeded();
     }
 
-    public int NativeGetNumPedDrawableVariations(ComponentId componentId)
+    public int NativeGetNumPedDrawableVariations(int componentId)
     {
         return Function.Call<int>(
             Hash.GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS, Game.Player.Character.Handle, (int)componentId);
     }
 
-    public int NativeGetNumPedTextureVariations(ComponentId componentId, int drawableId)
+    public int NativeGetNumPedTextureVariations(int componentId, int drawableId)
     {
         return Function.Call<int>(
             Hash.GET_NUMBER_OF_PED_TEXTURE_VARIATIONS, Game.Player.Character.Handle, (int)componentId, drawableId);
     }
 
-    public int NativeGetPedDrawableVariation(ComponentId componentId)
+    public int NativeGetPedDrawableVariation(int componentId)
     {
         return Function.Call<int>(Hash.GET_PED_DRAWABLE_VARIATION, Game.Player.Character.Handle, (int)componentId);
     }
 
-    public int NativeGetPedTextureVariation(ComponentId componentId)
+    public int NativeGetPedTextureVariation(int componentId)
     {
         return Function.Call<int>(Hash.GET_PED_TEXTURE_VARIATION, Game.Player.Character.Handle, (int)componentId);
     }
 
-    public void NativeSetComponentVariation(int componentId, int drawableId, int textureId)
+    public int NativeGetPedPaletteVariation(int componentId)
+    {
+        return Function.Call<int>(Hash.GET_PED_PALETTE_VARIATION, Game.Player.Character.Handle, (int)componentId);
+    }
+
+    public void NativeSetComponentVariation(int componentId, int drawableId, int textureId, int paletteId)
     {
         Function.Call(
             Hash.SET_PED_COMPONENT_VARIATION,
@@ -331,6 +352,6 @@ public class ChangingRoom : Script
             componentId,
             drawableId,
             textureId,
-            2); // 2 = paletteId
+            paletteId);
     }
 }
