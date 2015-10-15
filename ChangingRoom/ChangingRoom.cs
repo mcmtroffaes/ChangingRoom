@@ -66,6 +66,7 @@ public enum ComponentWhat
 public class ChangingRoom : Script
 {
     static int UI_LIST_MAX = 100;
+    static List<dynamic> UI_LIST = Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList();
 
     private readonly Dictionary<string, PedHash> _pedhash;
     private readonly Dictionary<string, ComponentId> _componentid;
@@ -126,9 +127,7 @@ public class ChangingRoom : Script
     public void AddComponentToMenu(UIMenu menu, ComponentId componentId, ComponentWhat componentWhat)
     {
         menu.AddItem(new UIMenuListItem(
-            componentId.ToString() + " " + componentWhat.ToString(),
-            Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
-            0));
+            componentId.ToString() + " " + componentWhat.ToString(), UI_LIST, 0));
     }
 
     public void AddFreemodeToMenu(UIMenu menu)
@@ -166,9 +165,7 @@ public class ChangingRoom : Script
     public void AddFreemodeComponentToMenu(UIMenu menu, FreemodeComponentId componentId, ComponentWhat componentWhat)
     {
         menu.AddItem(new UIMenuListItem(
-            componentId.ToString() + " " + componentWhat.ToString(),
-            Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
-            0));
+            componentId.ToString() + " " + componentWhat.ToString(), UI_LIST, 0));
     }
 
     public void AddExpertmodeToMenu(UIMenu menu)
@@ -180,56 +177,44 @@ public class ChangingRoom : Script
 
     public void AddExpertmodeCompvarToMenu(UIMenu menu)
     {
+        var componentItem = new UIMenuListItem("Component Id", UI_LIST, 0);
+        var drawableItem = new UIMenuListItem("Drawable Id", UI_LIST, 0);
+        var textureItem = new UIMenuListItem("Texture Id", UI_LIST, 0);
+        var paletteItem = new UIMenuListItem("Palette Id", UI_LIST, 0);
         var submenu = AddSubMenu(menu, "Change Component Variation");
-        submenu.AddItem(
-            new UIMenuListItem(
-                "Component Id",
-                Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
-                0));
-        submenu.AddItem(
-            new UIMenuListItem(
-                "Drawable Id",
-                Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
-                NativeGetPedDrawableVariation(0)));
-        submenu.AddItem(
-            new UIMenuListItem(
-                "Texture Id",
-                Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
-                NativeGetPedTextureVariation(0)));
-        submenu.AddItem(
-            new UIMenuListItem(
-                "Palette Id",
-                Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList(),
-                NativeGetPedPaletteVariation(0)));
+        submenu.AddItem(componentItem);
+        submenu.AddItem(drawableItem);
+        submenu.AddItem(textureItem);
+        submenu.AddItem(paletteItem);
         submenu.OnListChange += (sender, item, index) =>
         {
-            if (item.Text != "Component Id")
+            if (item != componentItem)
             {
                 // changing drawable/texture/palette: update in-game values
-                var componentId = ((UIMenuListItem)sender.MenuItems[0]).Index;
-                var drawableId = ((UIMenuListItem)sender.MenuItems[1]).Index;
-                var textureId = ((UIMenuListItem)sender.MenuItems[2]).Index;
-                var paletteId = ((UIMenuListItem)sender.MenuItems[3]).Index;
+                var componentId = componentItem.Index;
+                var drawableId = drawableItem.Index;
+                var textureId = textureItem.Index;
+                var paletteId = paletteItem.Index;
                 NativeSetPedComponentVariation(componentId, drawableId, textureId, paletteId);
             }
             else
             {
                 // changing component: sync menu indices with in-game drawable/texture/palette
                 var componentId = index;
-                ((UIMenuListItem)sender.MenuItems[1]).Index = NativeGetPedDrawableVariation(componentId);
-                ((UIMenuListItem)sender.MenuItems[2]).Index = NativeGetPedTextureVariation(componentId);
-                ((UIMenuListItem)sender.MenuItems[3]).Index = NativeGetPedPaletteVariation(componentId);
+                drawableItem.Index = NativeGetPedDrawableVariation(componentId);
+                textureItem.Index = NativeGetPedTextureVariation(componentId);
+                paletteItem.Index = NativeGetPedPaletteVariation(componentId);
             }
         };
     }
 
     public void AddExpertmodeComprandomToMenu(UIMenu menu)
     {
-        menu.AddItem(new UIMenuItem("Randomize Component Variation"));
+        var randItem = new UIMenuItem("Randomize Component Variation");
+        menu.AddItem(randItem);
         menu.OnItemSelect += (sender, item, index) =>
         {
-            // argument seems to have no effect
-            if (item.Text == "SET_PED_RANDOM_COMPONENT_VARIATION") NativeSetPedRandomComponentVariation(false);
+            if (item == randItem) NativeSetPedRandomComponentVariation(false);
         };
     }
 
