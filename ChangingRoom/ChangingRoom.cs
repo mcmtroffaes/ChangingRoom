@@ -173,6 +173,7 @@ public class ChangingRoom : Script
         var submenu = AddSubMenu(menu, "Expert Mode");
         AddExpertmodeCompvarToMenu(submenu);
         AddExpertmodeComprandomToMenu(submenu);
+        AddExpertmodePropsToMenu(submenu);
     }
 
     public void AddExpertmodeCompvarToMenu(UIMenu menu)
@@ -200,10 +201,82 @@ public class ChangingRoom : Script
             else
             {
                 // changing component: sync menu indices with in-game drawable/texture/palette
-                var componentId = index;
-                drawableItem.Index = NativeGetPedDrawableVariation(componentId);
-                textureItem.Index = NativeGetPedTextureVariation(componentId);
-                paletteItem.Index = NativeGetPedPaletteVariation(componentId);
+                var MAX_COMPONENTS = 11;
+                index = (index != UI_LIST_MAX) ? index : MAX_COMPONENTS;
+                index = (index <= MAX_COMPONENTS) ? index : 0;
+                componentItem.Index = index;
+                drawableItem.Index = NativeGetPedDrawableVariation(index);
+                textureItem.Index = NativeGetPedTextureVariation(index);
+                paletteItem.Index = NativeGetPedPaletteVariation(index);
+            }
+        };
+    }
+
+    public void AddExpertmodePropsToMenu(UIMenu menu)
+    {
+        // note: we allow value -1 for drawableId, representing cleared prop
+        var propItem = new UIMenuListItem("Prop Id", UI_LIST, 0);
+        var drawableItem = new UIMenuListItem("Drawable Id", UI_LIST, 0);
+        var textureItem = new UIMenuListItem("Texture Id", UI_LIST, 0);
+        var submenu = AddSubMenu(menu, "Change Prop Variation");
+        submenu.AddItem(propItem);
+        submenu.AddItem(drawableItem);
+        submenu.AddItem(textureItem);
+        submenu.OnListChange += (sender, item, index) =>
+        {
+            if (item == drawableItem || item == textureItem)
+            {
+                // changing drawable/texture: update in-game values
+                var propId = propItem.Index;
+                var drawableMax = NativeGetNumberOfPedPropDrawableVariations(propId) - 1;
+                var drawableId = drawableItem.Index - 1;
+                if (drawableId > drawableMax)
+                {
+                    drawableId = (drawableId == UI_LIST_MAX - 2) ? drawableMax : -1;
+                    drawableItem.Index = drawableId + 1;
+                }
+                var textureId = 0;
+                if (drawableMax >= 0)
+                {
+                    var textureMax = Math.Max(0, NativeGetNumberOfPedPropTextureVariations(propId, drawableId) - 1);
+                    textureId = textureItem.Index;
+                    if (textureId > textureMax)
+                    {
+                        textureId = (textureId == UI_LIST_MAX - 1) ? textureMax : 0;
+                        textureItem.Index = textureId;
+                    }
+                    textureItem.Enabled = (textureMax >= 1);
+                }
+                else
+                {
+                    textureItem.Index = 0;
+                    textureItem.Enabled = false;
+                }
+                if (drawableId >= 0)
+                {
+                    NativeSetPedPropIndex(propId, drawableId, textureId);
+                }
+                else
+                {
+                    NativeClearPedProp(propId);
+                }
+            }
+            else if (item == propItem)
+            {
+                // changing prop: sync menu indices with in-game drawable/texture
+                var propMax = 11;
+                var propId = index;
+                if (propId > propMax)
+                {
+                    propId = (propId == UI_LIST_MAX - 1) ? propMax : 0;
+                    propItem.Index = propId;
+                }
+                var drawableId = NativeGetPedPropIndex(propId);
+                var textureId = NativeGetPedPropTextureIndex(propId);
+                drawableItem.Index = drawableId + 1;
+                textureItem.Index = drawableId >= 0 ? textureId : 0;
+                drawableItem.Enabled = NativeGetNumberOfPedPropDrawableVariations(propId) >= 1;
+                textureItem.Enabled = NativeGetNumberOfPedPropTextureVariations(propId, drawableItem.Index) >= 2;
             }
         };
     }
@@ -356,28 +429,28 @@ public class ChangingRoom : Script
     public int NativeGetNumPedDrawableVariations(int componentId)
     {
         return Function.Call<int>(
-            Hash.GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS, Game.Player.Character.Handle, (int)componentId);
+            Hash.GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS, Game.Player.Character.Handle, componentId);
     }
 
     public int NativeGetNumPedTextureVariations(int componentId, int drawableId)
     {
         return Function.Call<int>(
-            Hash.GET_NUMBER_OF_PED_TEXTURE_VARIATIONS, Game.Player.Character.Handle, (int)componentId, drawableId);
+            Hash.GET_NUMBER_OF_PED_TEXTURE_VARIATIONS, Game.Player.Character.Handle, componentId, drawableId);
     }
 
     public int NativeGetPedDrawableVariation(int componentId)
     {
-        return Function.Call<int>(Hash.GET_PED_DRAWABLE_VARIATION, Game.Player.Character.Handle, (int)componentId);
+        return Function.Call<int>(Hash.GET_PED_DRAWABLE_VARIATION, Game.Player.Character.Handle, componentId);
     }
 
     public int NativeGetPedTextureVariation(int componentId)
     {
-        return Function.Call<int>(Hash.GET_PED_TEXTURE_VARIATION, Game.Player.Character.Handle, (int)componentId);
+        return Function.Call<int>(Hash.GET_PED_TEXTURE_VARIATION, Game.Player.Character.Handle, componentId);
     }
 
     public int NativeGetPedPaletteVariation(int componentId)
     {
-        return Function.Call<int>(Hash.GET_PED_PALETTE_VARIATION, Game.Player.Character.Handle, (int)componentId);
+        return Function.Call<int>(Hash.GET_PED_PALETTE_VARIATION, Game.Player.Character.Handle, componentId);
     }
 
     public void NativeSetPedComponentVariation(int componentId, int drawableId, int textureId, int paletteId)
@@ -394,5 +467,37 @@ public class ChangingRoom : Script
     public void NativeSetPedRandomComponentVariation(bool toggle)
     {
         Function.Call(Hash.SET_PED_RANDOM_COMPONENT_VARIATION, Game.Player.Character.Handle, toggle);
+    }
+
+    public void NativeSetPedPropIndex(int propId, int drawableId, int textureId)
+    {
+        Function.Call(Hash.SET_PED_PROP_INDEX, Game.Player.Character.Handle, propId, drawableId, textureId);
+    }
+
+    public int NativeGetPedPropIndex(int propId) // returns drawableId
+    {
+        return Function.Call<int>(Hash.GET_PED_PROP_INDEX, Game.Player.Character.Handle, propId);
+    }
+
+    public int NativeGetPedPropTextureIndex(int propId) // returns textureId
+    {
+        return Function.Call<int>(Hash.GET_PED_PROP_TEXTURE_INDEX, Game.Player.Character.Handle, propId);
+    }
+
+    public void NativeClearPedProp(int propId) // returns textureId
+    {
+        Function.Call(Hash.CLEAR_PED_PROP, Game.Player.Character.Handle, propId);
+    }
+
+    public int NativeGetNumberOfPedPropDrawableVariations(int propId)
+    {
+        return Function.Call<int>(
+            Hash.GET_NUMBER_OF_PED_PROP_DRAWABLE_VARIATIONS, Game.Player.Character.Handle, propId);
+    }
+
+    public int NativeGetNumberOfPedPropTextureVariations(int propId, int drawableId)
+    {
+        return Function.Call<int>(
+            Hash.GET_NUMBER_OF_PED_PROP_TEXTURE_VARIATIONS, Game.Player.Character.Handle, propId, drawableId);
     }
 }
