@@ -180,7 +180,7 @@ public class ChangingRoom : Script
 
     public void AddExpertmodeCompvarToMenu(UIMenu menu)
     {
-        var submenu = AddSubMenu(menu, "SET_PED_COMPONENT_VARIATION");
+        var submenu = AddSubMenu(menu, "Change Component Variation");
         submenu.AddItem(
             new UIMenuListItem(
                 "Component Id",
@@ -225,7 +225,7 @@ public class ChangingRoom : Script
 
     public void AddExpertmodeComprandomToMenu(UIMenu menu)
     {
-        menu.AddItem(new UIMenuItem("SET_PED_RANDOM_COMPONENT_VARIATION"));
+        menu.AddItem(new UIMenuItem("Randomize Component Variation"));
         menu.OnItemSelect += (sender, item, index) =>
         {
             // argument seems to have no effect
