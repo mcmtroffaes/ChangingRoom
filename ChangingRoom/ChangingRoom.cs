@@ -55,6 +55,13 @@ public class ChangingRoom : Script
     static List<dynamic> UI_LIST = Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList();
     private readonly Dictionary<string, PedHash> _pedhash;
     private MenuPool menuPool;
+    public enum PlayerType
+    {
+        PlayerSP,
+        PlayerMPMale,
+        PlayerMPFemale,
+    }
+    public PlayerType player_type = PlayerType.PlayerSP;
 
     public readonly Dictionary<Component, int> sp_componentmap = new Dictionary<Component, int>
     {
@@ -87,6 +94,58 @@ public class ChangingRoom : Script
         [Component.Decals] = 10,
         [Component.Shirt] = 11,
     };
+
+    // list of *all* valid drawable combinations of shirt (component 11),
+    // subshirt (component 8), and hand (component 3)
+    // TODO: complete it...
+    public readonly List<Tuple<int,int,int>> mp_m_valid_shirt_subshirt_hands = new List<Tuple<int,int,int>> {
+        Tuple.Create(0, 0, 0),
+        Tuple.Create(0, 57, 0),
+        Tuple.Create(1, 57, 0),
+        Tuple.Create(2, 57, 2),
+        Tuple.Create(3, 57, 14),
+        Tuple.Create(4, 57, 14),
+        Tuple.Create(5, 57, 5),
+        Tuple.Create(6, 57, 14),
+        Tuple.Create(7, 57, 14),
+        Tuple.Create(8, 57, 8),
+        Tuple.Create(9, 57, 0),
+        Tuple.Create(10, 57, 14),
+        Tuple.Create(11, 57, 5),
+        Tuple.Create(12, 57, 1),
+        Tuple.Create(13, 57, 0),
+        Tuple.Create(14, 57, 1),
+        Tuple.Create(15, 57, 15),
+        Tuple.Create(16, 57, 0),
+        Tuple.Create(17, 57, 5),
+    };
+
+    delegate bool MatchItem(Tuple<int, int, int> item);
+
+    public Tuple<int, int, int> BestValidShirtSubshirtHands(List<Tuple<int,int,int>> valid_items, int which, Tuple<int, int, int> item)
+    {
+        var best_distance = 999999;
+        var best_item = item;
+        MatchItem match = this_item => false;
+        if (which == 0) match = this_item => this_item.Item1 == item.Item1;
+        if (which == 1) match = this_item => this_item.Item2 == item.Item2;
+        if (which == 2) match = this_item => this_item.Item3 == item.Item3;
+        foreach (var this_item in valid_items)
+        {
+            if (match(this_item))
+            {
+                var this_distance = Math.Abs(item.Item1 - this_item.Item1)
+                    + Math.Abs(item.Item2 - this_item.Item2)
+                    + Math.Abs(item.Item3 - this_item.Item3);
+                if (this_distance < best_distance)
+                {
+                    best_item = this_item;
+                    best_distance = this_distance;
+                }
+            }
+        }
+        return best_item;
+    }
 
     public UIMenu AddSubMenu(UIMenu menu, string name)
     {
@@ -130,7 +189,11 @@ public class ChangingRoom : Script
             var subitem = new UIMenuItem(model.ToString());
             submenu.AddItem(subitem);
         }
-        submenu.OnItemSelect += (sender, item, index) => NativeSetPlayerModel(_pedhash[item.Text]);
+        submenu.OnItemSelect += (sender, item, index) =>
+        {
+            NativeSetPlayerModel(_pedhash[item.Text]);
+            player_type = PlayerType.PlayerSP;
+        };
     }
 
     public void AddOutfitToMenu(UIMenu menu, Dictionary<Component, int> componentmap)
@@ -215,12 +278,24 @@ public class ChangingRoom : Script
                 {
                     textureId = index;
                 }
-                var paletteId = 0;  // reasonable default
-                NativeSetPedComponentVariation(componentid, drawableId, textureId, paletteId);
+                NativeSetPedComponentVariation(componentid, drawableId, textureId, -1);
                 // when changing drawableId, the texture item might need to be enabled or disabled
                 // textureNum depends on both componentId and drawableId and may now have changed
                 if (item == drawableitem && textureNum != textureNum2)
                     textureitem.Enabled = (textureNum2 >= 2);
+                // try to keep freemode outfit in a valid state
+                if (player_type == PlayerType.PlayerMPMale && componentid == 11)
+                {
+                    var shirt_subshirt_hands = Tuple.Create(
+                        NativeGetPedDrawableVariation(11),
+                        NativeGetPedDrawableVariation(8),
+                        NativeGetPedDrawableVariation(3)
+                        );
+                    var best_shirt_subshirt_hands = BestValidShirtSubshirtHands(mp_m_valid_shirt_subshirt_hands, 0, shirt_subshirt_hands);
+                    NativeSetPedComponentVariation(11, best_shirt_subshirt_hands.Item1, -1, -1);
+                    NativeSetPedComponentVariation(8, best_shirt_subshirt_hands.Item2, -1, -1);
+                    NativeSetPedComponentVariation(3, best_shirt_subshirt_hands.Item3, -1, -1);
+                }
             }
         };
         return subitem;
@@ -242,9 +317,15 @@ public class ChangingRoom : Script
         menu.OnItemSelect += (sender, item, index) =>
         {
             if (item == male)
+            {
                 NativeSetPlayerModel(PedHash.FreemodeMale01);
+                player_type = PlayerType.PlayerMPMale;
+            }
             else if (item == female)
+            {
                 NativeSetPlayerModel(PedHash.FreemodeFemale01);
+                player_type = PlayerType.PlayerMPFemale;
+            }
         };
     }
 
@@ -456,8 +537,19 @@ public class ChangingRoom : Script
         return Function.Call<int>(Hash.GET_PED_PALETTE_VARIATION, Game.Player.Character.Handle, componentId);
     }
 
+    public int snap(int value, int num)
+    {
+        var maxid = Math.Max(0, num - 1);
+        return Math.Min(value, maxid);
+    }
+
     public void NativeSetPedComponentVariation(int componentId, int drawableId, int textureId, int paletteId)
     {
+        if (drawableId ==  -1) drawableId = NativeGetPedDrawableVariation(componentId);
+        drawableId = snap(drawableId, NativeGetNumPedDrawableVariations(componentId));
+        if (textureId == -1) textureId = NativeGetPedTextureVariation(componentId);
+        textureId = snap(textureId, NativeGetNumPedTextureVariations(componentId, drawableId));
+        if (paletteId == -1) paletteId = NativeGetPedPaletteVariation(componentId);
         Function.Call(
             Hash.SET_PED_COMPONENT_VARIATION,
             Game.Player.Character.Handle,
