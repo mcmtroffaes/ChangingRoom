@@ -25,42 +25,28 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
 
-public enum ComponentId
+// all named components, both sp and mp characters
+// there are only 11 components for both sp and mp
+// the mapping to actual component numbers is defined
+// further
+public enum Component
 {
     Face,
     Beard,
     Haircut,
     Shirt,
+    SubShirt,
     Pants,
     Hands,
     Shoes,
     Eyes,
+    Mask,
+    Armour,
+    Parachutes,
     Accessories,
     Items,
     Decals,
     Collars,
-}
-
-public enum FreemodeComponentId
-{
-    Face,
-    Mask,
-    Haircut,
-    Arms,
-    Pants,
-    Parachutes,
-    Shoes,
-    Accessories,
-    Shirts1,
-    Armour,
-    Decals,
-    Shirts2,
-}
-
-public enum ComponentWhat
-{
-    Drawable,
-    Texture,
 }
 
 public class ChangingRoom : Script
@@ -70,14 +56,51 @@ public class ChangingRoom : Script
     private readonly Dictionary<string, PedHash> _pedhash;
     private MenuPool menuPool;
 
+    public readonly Dictionary<Component, int> sp_componentmap = new Dictionary<Component, int>
+    {
+        [Component.Face] = 0,
+        [Component.Beard] = 1,
+        [Component.Haircut] = 2,
+        [Component.Shirt] = 3,
+        [Component.Pants] = 4,
+        [Component.Hands] = 5,
+        [Component.Shoes] = 6,
+        [Component.Eyes] = 7,
+        [Component.Accessories] = 8,
+        [Component.Items] = 9,
+        [Component.Decals] = 10,
+        [Component.Collars] = 11,
+    };
+
+    public readonly Dictionary<Component, int> mp_componentmap = new Dictionary<Component, int>
+    {
+        [Component.Face] = 0,
+        [Component.Mask] = 1,
+        [Component.Haircut] = 2,
+        [Component.Hands] = 3,
+        [Component.Pants] = 4,
+        [Component.Parachutes] = 5,
+        [Component.Shoes] = 6,
+        [Component.Accessories] = 7,
+        [Component.SubShirt] = 8,
+        [Component.Armour] = 9,
+        [Component.Decals] = 10,
+        [Component.Shirt] = 11,
+    };
+
     public UIMenu AddSubMenu(UIMenu menu, string name)
+    {
+        return AddSubMenu2(menu, name).Item2;
+    }
+
+    public Tuple<UIMenuItem, UIMenu> AddSubMenu2(UIMenu menu, string name)
     {
         var item = new UIMenuItem(name);
         menu.AddItem(item);
         var submenu = new UIMenu(menu.Title.Caption, name);
         menuPool.Add(submenu);
         menu.BindMenuToItem(submenu, item);
-        return submenu;
+        return Tuple.Create(item, submenu);
     }
 
     public void RefreshIndex()
@@ -89,7 +112,7 @@ public class ChangingRoom : Script
     {
         var submenu = AddSubMenu(menu, "Story Mode");
         AddStorymodeModelToMenu(submenu);
-        AddStorymodeOutfitToMenu(submenu);
+        AddOutfitToMenu(submenu, sp_componentmap);
     }
 
     public void AddStorymodeModelToMenu(UIMenu menu)
@@ -110,27 +133,104 @@ public class ChangingRoom : Script
         submenu.OnItemSelect += (sender, item, index) => NativeSetPlayerModel(_pedhash[item.Text]);
     }
 
-    public void AddStorymodeOutfitToMenu(UIMenu menu)
+    public void AddOutfitToMenu(UIMenu menu, Dictionary<Component, int> componentmap)
     {
-        var submenu = AddSubMenu(menu, "Change Outfit");
-        foreach (ComponentId componentId in Enum.GetValues(typeof(ComponentId)))
-            foreach (ComponentWhat componentWhat in Enum.GetValues(typeof(ComponentWhat)))
-                AddComponentToMenu(submenu, componentId, componentWhat);
-        menu.OnItemSelect += OnItemSelectOutfit;
-        submenu.OnListChange += OnListChangeOutfit;
+        var result = AddSubMenu2(menu, "Change Outfit");
+        var outfititem = result.Item1;
+        var outfitmenu = result.Item2;
+        var componentitems = new List<Tuple<Component, UIMenuItem>>();
+        foreach (Component component in Enum.GetValues(typeof(Component)))
+            if (componentmap.ContainsKey(component))
+            {
+                var subitem = AddComponentToMenu(outfitmenu, component.ToString(), componentmap[component]);
+                componentitems.Add(Tuple.Create(component, subitem));
+            }
+        menu.OnItemSelect += (sender, item, index) =>
+        {
+            // enable only if there are any items to change
+            if (item == outfititem)
+            {
+                foreach (var componentitem in componentitems)
+                {
+                    var component = componentitem.Item1;
+                    var subitem = componentitem.Item2;
+                    var componentid = componentmap[component];
+                    subitem.Enabled = (NativeGetNumPedDrawableVariations(componentid) >= 2) || (NativeGetNumPedTextureVariations(componentid, 0) >= 2);
+                }
+            }
+        };
     }
 
-    public void AddComponentToMenu(UIMenu menu, ComponentId componentId, ComponentWhat componentWhat)
+    public UIMenuItem AddComponentToMenu(UIMenu menu, string text, int componentid)
     {
-        menu.AddItem(new UIMenuListItem(
-            componentId.ToString() + " " + componentWhat.ToString(), UI_LIST, 0));
+        var result = AddSubMenu2(menu, text);
+        var subitem = result.Item1;
+        var submenu = result.Item2;
+        var drawableitem = new UIMenuListItem("Model", UI_LIST, 0);
+        var textureitem = new UIMenuListItem("Texture", UI_LIST, 0);
+        submenu.AddItem(drawableitem);
+        submenu.AddItem(textureitem);
+        menu.OnItemSelect += (sender, item, index) =>
+        {
+            if (item == subitem)
+            {
+                // display correct indices for model and texture
+                // and enable item if there's anything to change
+                var drawableid = NativeGetPedDrawableVariation(componentid);
+                drawableitem.Index = drawableid;
+                drawableitem.Enabled = (NativeGetNumPedDrawableVariations(componentid) >= 2);
+                var textureid = NativeGetPedTextureVariation(componentid);
+                textureitem.Index = textureid;
+                textureitem.Enabled = (NativeGetNumPedTextureVariations(componentid, drawableid) >= 2);
+            }
+        };
+        submenu.OnListChange += (sender, item, index) =>
+        {
+            if (item == drawableitem || item == textureitem)
+            {
+                var drawableId = NativeGetPedDrawableVariation(componentid);
+                var textureId = NativeGetPedTextureVariation(componentid);
+                var drawableNum = NativeGetNumPedDrawableVariations(componentid);
+                var textureNum = NativeGetNumPedTextureVariations(componentid, drawableId);
+                // we need to ensure that the new id is valid as the menu has more items than number of ids supported by the game
+                var num = (item == drawableitem) ? drawableNum : textureNum;
+                // GET_NUMBER_OF_PED_..._VARIATIONS sometimes returns 0, in this case there is also exactly one variation
+                var maxid = Math.Max(0, num - 1);
+                if (index > maxid)
+                {
+                    // wrap the index depending on whether user scrolled forward or backward
+                    index = (index == UI_LIST_MAX - 1) ? maxid : 0;
+                    item.Index = index;
+                }
+                var textureNum2 = textureNum;  // new textureNum after changing drawableId (if changed)
+                if (item == drawableitem)
+                {
+                    drawableId = index;
+                    textureNum2 = NativeGetNumPedTextureVariations(componentid, drawableId);
+                    // correct current texture id if it is out of range
+                    // we pick the nearest integer
+                    if (textureId >= textureNum2) textureId = textureNum2 - 1;
+                }
+                else
+                {
+                    textureId = index;
+                }
+                var paletteId = 0;  // reasonable default
+                NativeSetPedComponentVariation(componentid, drawableId, textureId, paletteId);
+                // when changing drawableId, the texture item might need to be enabled or disabled
+                // textureNum depends on both componentId and drawableId and may now have changed
+                if (item == drawableitem && textureNum != textureNum2)
+                    textureitem.Enabled = (textureNum2 >= 2);
+            }
+        };
+        return subitem;
     }
 
     public void AddFreemodeToMenu(UIMenu menu)
     {
         var submenu = AddSubMenu(menu, "Free Mode");
         AddFreemodeModelToMenu(submenu);
-        AddFreemodeOutfitToMenu(submenu);
+        AddOutfitToMenu(submenu, mp_componentmap);
     }
 
     public void AddFreemodeModelToMenu(UIMenu menu)
@@ -146,22 +246,6 @@ public class ChangingRoom : Script
             else if (item == female)
                 NativeSetPlayerModel(PedHash.FreemodeFemale01);
         };
-    }
-
-    public void AddFreemodeOutfitToMenu(UIMenu menu)
-    {
-        var submenu = AddSubMenu(menu, "Change Outfit");
-        foreach (FreemodeComponentId componentId in Enum.GetValues(typeof(FreemodeComponentId)))
-            foreach (ComponentWhat componentWhat in Enum.GetValues(typeof(ComponentWhat)))
-                AddFreemodeComponentToMenu(submenu, componentId, componentWhat);
-        menu.OnItemSelect += OnItemSelectOutfit;
-        submenu.OnListChange += OnListChangeOutfit;
-    }
-
-    public void AddFreemodeComponentToMenu(UIMenu menu, FreemodeComponentId componentId, ComponentWhat componentWhat)
-    {
-        menu.AddItem(new UIMenuListItem(
-            componentId.ToString() + " " + componentWhat.ToString(), UI_LIST, 0));
     }
 
     public void AddExpertmodeToMenu(UIMenu menu)
@@ -306,79 +390,6 @@ public class ChangingRoom : Script
 
         _pedhash = new Dictionary<string, PedHash>();
         foreach (PedHash x in Enum.GetValues(typeof(PedHash))) _pedhash[x.ToString()] = x;
-    }
-
-    public void OnItemSelectOutfit(UIMenu sender, UIMenuItem selectedItem, int index)
-    {
-        if (selectedItem.Text == "Change Outfit")
-        {
-            // we need to get the ids of every item and set the list indices accordingly
-            var itemIndex = 0;
-            foreach(UIMenuListItem item in sender.Children[selectedItem].MenuItems)
-            {
-                var componentId = itemIndex / 2;
-                var componentWhat = itemIndex % 2;
-                itemIndex++;
-                // set index
-                // we also gray out any items that have only one option
-                if (componentWhat == 0)
-                {
-                    var drawableId = NativeGetPedDrawableVariation(componentId);
-                    item.Index = drawableId;
-                    var num = NativeGetNumPedDrawableVariations(componentId);
-                    item.Enabled = (num >= 2);
-                }
-                else
-                {
-                    var textureId = NativeGetPedTextureVariation(componentId);
-                    item.Index = textureId;
-                    var drawableId = NativeGetPedDrawableVariation(componentId);
-                    var num = NativeGetNumPedTextureVariations(componentId, drawableId);
-                    item.Enabled = (num >= 2);
-                }
-            }
-        }
-    }
-
-    public void OnListChangeOutfit(UIMenu sender, UIMenuListItem listItem, int newIndex)
-    {
-        var itemIndex = sender.MenuItems.IndexOf(listItem);
-        var componentId = itemIndex / 2;
-        var componentWhat = itemIndex % 2;
-        var id = newIndex;
-        var drawableId = NativeGetPedDrawableVariation(componentId);
-        var textureId = NativeGetPedTextureVariation(componentId);
-        var drawableNum = NativeGetNumPedDrawableVariations(componentId);
-        var textureNum = NativeGetNumPedTextureVariations(componentId, drawableId);
-        // we need to ensure that the new id is valid as the menu has more items than number of ids supported by the game
-        var num = (componentWhat == 0) ? drawableNum : textureNum;
-        // GET_NUMBER_OF_PED_..._VARIATIONS sometimes returns 0, in this case there is also exactly one variation
-        var maxid = Math.Max(0, num - 1);
-        if (id > maxid)
-        {
-            // wrap the index depending on whether user scrolled forward or backward
-            id = (listItem.Index == UI_LIST_MAX - 1) ? maxid : 0;
-            listItem.Index = id;
-        }
-        var textureNum2 = textureNum;  // new textureNum after changing drawableId (if changed)
-        if (componentWhat == 0)
-        {
-            drawableId = id;
-            textureNum2 = NativeGetNumPedTextureVariations(componentId, drawableId);
-            // correct current texture id if it is out of range
-            // we pick the nearest integer
-            if (textureId >= textureNum2) textureId = textureNum2 - 1;
-        }
-        else
-        {
-            textureId = id;
-        }
-        var paletteId = 0;  // reasonable default
-        NativeSetPedComponentVariation(componentId, drawableId, textureId, paletteId);
-        // when changing drawableId, the texture item might need to be enabled or disabled
-        // textureNum depends on both componentId and drawableId and may now have changed
-        if (componentWhat == 0 && textureNum != textureNum2)
-            sender.MenuItems[itemIndex + 1].Enabled = (textureNum2 >= 2);
     }
 
     public  void NativeSetPlayerModel(PedHash hash)
