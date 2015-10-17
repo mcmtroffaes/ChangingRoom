@@ -51,7 +51,7 @@ public enum Component
 
 public class ChangingRoom : Script
 {
-    static int UI_LIST_MAX = 100;
+    static int UI_LIST_MAX = 256;
     static List<dynamic> UI_LIST = Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList();
     private readonly Dictionary<string, PedHash> _pedhash;
     private MenuPool menuPool;
@@ -392,7 +392,7 @@ public class ChangingRoom : Script
         foreach (PedHash x in Enum.GetValues(typeof(PedHash))) _pedhash[x.ToString()] = x;
     }
 
-    public  void NativeSetPlayerModel(PedHash hash)
+    public void NativeSetPlayerModel(PedHash hash)
     {
         var model = new Model(hash);
         model.Request(500);
