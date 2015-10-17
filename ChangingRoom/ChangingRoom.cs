@@ -67,11 +67,7 @@ public class ChangingRoom : Script
 {
     static int UI_LIST_MAX = 100;
     static List<dynamic> UI_LIST = Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList();
-
     private readonly Dictionary<string, PedHash> _pedhash;
-    private readonly Dictionary<string, ComponentId> _componentid;
-    private readonly Dictionary<string, ComponentWhat> _componentwhat;
-
     private MenuPool menuPool;
 
     public UIMenu AddSubMenu(UIMenu menu, string name)
@@ -309,11 +305,7 @@ public class ChangingRoom : Script
         };
 
         _pedhash = new Dictionary<string, PedHash>();
-        _componentid = new Dictionary<string, ComponentId>();
-        _componentwhat = new Dictionary<string, ComponentWhat>();
         foreach (PedHash x in Enum.GetValues(typeof(PedHash))) _pedhash[x.ToString()] = x;
-        foreach (ComponentId x in Enum.GetValues(typeof(ComponentId))) _componentid[x.ToString()] = x;
-        foreach (ComponentWhat x in Enum.GetValues(typeof(ComponentWhat))) _componentwhat[x.ToString()] = x;
     }
 
     public void OnItemSelectOutfit(UIMenu sender, UIMenuItem selectedItem, int index)
