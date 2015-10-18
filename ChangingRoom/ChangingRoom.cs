@@ -95,9 +95,7 @@ public class ChangingRoom : Script
         [Component.Shirt] = 11,
     };
 
-    // list of *all* valid drawable combinations of shirt (component 11),
-    // subshirt (component 8), and hand (component 3)
-    // TODO: complete it...
+    // map drawable shirt (component 11) to drawable hand (component 3)
     public readonly Dictionary<int, int> mp_m_shirt_hands = new Dictionary<int, int> {
         [0] = 0,
         [1] = 0,
