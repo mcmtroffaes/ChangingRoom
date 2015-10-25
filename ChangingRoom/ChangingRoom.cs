@@ -500,6 +500,13 @@ public class ChangingRoom : Script
         return Function.Call<int>(Hash.GET_PED_PALETTE_VARIATION, Game.Player.Character.Handle, componentId);
     }
 
+    /// <summary>
+    /// Call SET_PED_COMPONENT_VARIATION.
+    /// </summary>
+    /// <param name="componentId">The component index.</param>
+    /// <param name="drawableId">The drawable index. If -1, keep current value.</param>
+    /// <param name="textureId">The texture index. If -1, keep current value.</param>
+    /// <param name="paletteId">The palette index. If -1, keep current value.</param>
     public void NativeSetPedComponentVariation(int componentId, int drawableId, int textureId, int paletteId)
     {
         Function.Call(
