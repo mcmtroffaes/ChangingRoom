@@ -502,16 +502,13 @@ public class ChangingRoom : Script
 
     public void NativeSetPedComponentVariation(int componentId, int drawableId, int textureId, int paletteId)
     {
-        if (drawableId ==  -1) drawableId = NativeGetPedDrawableVariation(componentId);
-        if (textureId == -1) textureId = NativeGetPedTextureVariation(componentId);
-        if (paletteId == -1) paletteId = NativeGetPedPaletteVariation(componentId);
         Function.Call(
             Hash.SET_PED_COMPONENT_VARIATION,
             Game.Player.Character.Handle,
             componentId,
-            drawableId,
-            textureId,
-            paletteId);
+            (drawableId != -1) ? drawableId : NativeGetPedDrawableVariation(componentId),
+            (textureId != -1) ? textureId : NativeGetPedTextureVariation(componentId),
+            (paletteId != -1) ? paletteId : NativeGetPedPaletteVariation(componentId));
     }
 
     public void NativeSetPedRandomComponentVariation(bool toggle)
