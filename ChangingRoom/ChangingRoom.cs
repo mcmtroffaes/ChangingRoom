@@ -500,18 +500,10 @@ public class ChangingRoom : Script
         return Function.Call<int>(Hash.GET_PED_PALETTE_VARIATION, Game.Player.Character.Handle, componentId);
     }
 
-    public int snap(int value, int num)
-    {
-        var maxid = Math.Max(0, num - 1);
-        return Math.Min(value, maxid);
-    }
-
     public void NativeSetPedComponentVariation(int componentId, int drawableId, int textureId, int paletteId)
     {
         if (drawableId ==  -1) drawableId = NativeGetPedDrawableVariation(componentId);
-        drawableId = snap(drawableId, NativeGetNumPedDrawableVariations(componentId));
         if (textureId == -1) textureId = NativeGetPedTextureVariation(componentId);
-        textureId = snap(textureId, NativeGetNumPedTextureVariations(componentId, drawableId));
         if (paletteId == -1) paletteId = NativeGetPedPaletteVariation(componentId);
         Function.Call(
             Hash.SET_PED_COMPONENT_VARIATION,
