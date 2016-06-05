@@ -240,6 +240,7 @@ public class ChangingRoom : Script
     {
         var submenu = AddSubMenu(menu, "Free Mode");
         AddFreemodeModelToMenu(submenu);
+        AddFreemodeClearToMenu(submenu);
         AddOutfitToMenu(submenu, mp_componentmap);
     }
 
@@ -260,6 +261,30 @@ public class ChangingRoom : Script
             {
                 NativeSetPlayerModel(PedHash.FreemodeFemale01);
                 player_type = PlayerType.PlayerMPFemale;
+            }
+        };
+    }
+
+    public void AddFreemodeClearToMenu(UIMenu menu)
+    {
+        var clear_top = new UIMenuItem("Clear Outfit Top");
+        menu.AddItem(clear_top);
+        menu.OnItemSelect += (sender, item, index) =>
+        {
+            if (item == clear_top)
+            {
+                if (player_type == PlayerType.PlayerMPMale)
+                {
+                    NativeSetPedComponentVariation(3, 3, 0, 0); // hands
+                    NativeSetPedComponentVariation(8, 15, 0, 0); // subshirt
+                    NativeSetPedComponentVariation(11, 15, 0, 0); // shirt
+                }
+                else if (player_type == PlayerType.PlayerMPFemale)
+                {
+                    NativeSetPedComponentVariation(3, 8, 0, 0); // hands
+                    NativeSetPedComponentVariation(8, 15, 0, 0); // subshirt
+                    NativeSetPedComponentVariation(11, 15, 0, 0); // shirt
+                }
             }
         };
     }
