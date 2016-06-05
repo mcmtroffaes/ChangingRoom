@@ -95,6 +95,16 @@ public class ChangingRoom : Script
         [Component.Shirt] = 11,
     };
 
+    public readonly List<int> mp_male_clear_drawable = new List<int>
+    {
+        0, 0, 0, 3, 11, 0, 13, 0, 15, 0, 0, 15
+    };
+
+    public readonly List<int> mp_female_clear_drawable = new List<int>
+    {
+        0, 0, 0, 8, 13, 0, 12, 0, 14, 0, 0, 82
+    };
+
     public UIMenu AddSubMenu(UIMenu menu, string name)
     {
         return AddSubMenu2(menu, name).Item2;
@@ -119,7 +129,8 @@ public class ChangingRoom : Script
     {
         var submenu = AddSubMenu(menu, "Story Mode");
         AddStorymodeModelToMenu(submenu);
-        AddOutfitToMenu(submenu, sp_componentmap);
+        AddChangeOutfitToMenu(submenu, sp_componentmap);
+        AddClearOutfitToMenu(submenu);
     }
 
     public void AddStorymodeModelToMenu(UIMenu menu)
@@ -144,7 +155,7 @@ public class ChangingRoom : Script
         };
     }
 
-    public void AddOutfitToMenu(UIMenu menu, Dictionary<Component, int> componentmap)
+    public void AddChangeOutfitToMenu(UIMenu menu, Dictionary<Component, int> componentmap)
     {
         var result = AddSubMenu2(menu, "Change Outfit");
         var outfititem = result.Item1;
@@ -179,8 +190,10 @@ public class ChangingRoom : Script
         var submenu = result.Item2;
         var drawableitem = new UIMenuListItem("Model", UI_LIST, 0);
         var textureitem = new UIMenuListItem("Texture", UI_LIST, 0);
+        var clearitem = new UIMenuItem("Clear");
         submenu.AddItem(drawableitem);
         submenu.AddItem(textureitem);
+        submenu.AddItem(clearitem);
         menu.OnItemSelect += (sender, item, index) =>
         {
             if (item == subitem)
@@ -233,6 +246,20 @@ public class ChangingRoom : Script
                     textureitem.Enabled = (textureNum2 >= 2);
             }
         };
+        submenu.OnItemSelect += (sender, item, index) =>
+        {
+            if (item == clearitem)
+            {
+                ClearPedComponentVariation(componentid);
+                // update menu items
+                var drawableId = NativeGetPedDrawableVariation(componentid);
+                var textureId = NativeGetPedTextureVariation(componentid);
+                var textureNum = NativeGetNumPedTextureVariations(componentid, drawableId);
+                drawableitem.Index = drawableId;
+                textureitem.Index = textureId;
+                textureitem.Enabled = (textureNum >= 2);
+            }
+        };
         return subitem;
     }
 
@@ -240,8 +267,8 @@ public class ChangingRoom : Script
     {
         var submenu = AddSubMenu(menu, "Free Mode");
         AddFreemodeModelToMenu(submenu);
-        AddFreemodeClearToMenu(submenu);
-        AddOutfitToMenu(submenu, mp_componentmap);
+        AddChangeOutfitToMenu(submenu, mp_componentmap);
+        AddClearOutfitToMenu(submenu);
     }
 
     public void AddFreemodeModelToMenu(UIMenu menu)
@@ -265,27 +292,15 @@ public class ChangingRoom : Script
         };
     }
 
-    public void AddFreemodeClearToMenu(UIMenu menu)
+    public void AddClearOutfitToMenu(UIMenu menu)
     {
-        var clear_top = new UIMenuItem("Clear Outfit Top");
-        menu.AddItem(clear_top);
+        var clearitem = new UIMenuItem("Clear Outfit");
+        menu.AddItem(clearitem);
         menu.OnItemSelect += (sender, item, index) =>
         {
-            if (item == clear_top)
-            {
-                if (player_type == PlayerType.PlayerMPMale)
-                {
-                    NativeSetPedComponentVariation(3, 3, 0, 0); // hands
-                    NativeSetPedComponentVariation(8, 15, 0, 0); // subshirt
-                    NativeSetPedComponentVariation(11, 15, 0, 0); // shirt
-                }
-                else if (player_type == PlayerType.PlayerMPFemale)
-                {
-                    NativeSetPedComponentVariation(3, 8, 0, 0); // hands
-                    NativeSetPedComponentVariation(8, 15, 0, 0); // subshirt
-                    NativeSetPedComponentVariation(11, 15, 0, 0); // shirt
-                }
-            }
+            if (item == clearitem)
+                for (int componentid = 0; componentid < 12; componentid++)
+                    ClearPedComponentVariation(componentid);
         };
     }
 
@@ -410,6 +425,22 @@ public class ChangingRoom : Script
         {
             if (item == randItem) NativeSetPedRandomComponentVariation(false);
         };
+    }
+
+    void ClearPedComponentVariation(int componentid)
+    {
+        if (player_type == PlayerType.PlayerMPMale)
+        {
+            NativeSetPedComponentVariation(componentid, mp_male_clear_drawable[componentid], 0, 0);
+        }
+        else if (player_type == PlayerType.PlayerMPFemale)
+        {
+            NativeSetPedComponentVariation(componentid, mp_female_clear_drawable[componentid], 0, 0);
+        }
+        else
+        {
+            NativeSetPedComponentVariation(componentid, 0, 0, 0);
+        }
     }
 
     public ChangingRoom()
