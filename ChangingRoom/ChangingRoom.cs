@@ -343,6 +343,55 @@ public class ChangingRoom : Script
         }
     }
 
+    public void AddActorActionToMenu(UIMenu menu, String name, Action<UIMenuItem, int> action, Func<int, bool> ticked)
+    {
+        var submenu = AddSubMenu(menu, name);
+        for (int i = 0; i < 10; i++)
+        {
+            var subsubmenu = AddSubMenu(submenu, String.Format("Actors {0}-{1}", 1 + i * 10, 10 + i * 10));
+            for (int j = 0; j < 10; j++)
+            {
+                var slot = 1 + j + i * 10;
+                var slotitem = new UIMenuItem(String.Format("Actor {0}", slot));
+                subsubmenu.AddItem(slotitem);
+                if (ticked(slot)) slotitem.SetLeftBadge(UIMenuItem.BadgeStyle.Tick);
+                subsubmenu.OnItemSelect += (sender, item, index) =>
+                {
+                    if (item == slotitem) action(slotitem, slot);
+                };
+            }
+        }
+    }
+
+    public String GetScriptFolder()
+    {
+        return System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDoc‌​uments), "ChangingRoom");
+    }
+
+    public String GetActorFilename(int slot)
+    {
+        var filename = String.Format("actor{0:000}.xml", slot);
+        return System.IO.Path.Combine(GetScriptFolder(), filename);
+    }
+
+    public bool ExistsActor(int slot)
+    {
+        var path = GetActorFilename(slot);
+        return System.IO.File.Exists(path);
+    }
+
+    public void SaveActor(UIMenuItem item, int slot)
+    {
+        var path = GetActorFilename(slot);
+        UI.Notify(String.Format("Saving actor to {0}", path));
+    }
+
+    public void LoadActor(UIMenuItem item, int slot)
+    {
+        var path = GetActorFilename(slot);
+        UI.Notify(String.Format("Loading actor from {0}", path));
+    }
+
     public ChangingRoom()
     {
         menuPool = new MenuPool();
@@ -350,6 +399,8 @@ public class ChangingRoom : Script
         menuPool.Add(menuMain);
         AddStorymodeToMenu(menuMain);
         AddFreemodeToMenu(menuMain);
+        AddActorActionToMenu(menuMain, "Save Actor", SaveActor, ExistsActor);
+        AddActorActionToMenu(menuMain, "Load Actor", LoadActor, ExistsActor);
         RefreshIndex();
 
         Tick += (sender, e) => menuPool.ProcessMenus();
