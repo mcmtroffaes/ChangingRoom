@@ -95,28 +95,6 @@ public class ChangingRoom : Script
         [Component.Shirt] = 11,
     };
 
-    // map drawable shirt (component 11) to drawable hand (component 3)
-    public readonly Dictionary<int, int> mp_m_shirt_hands = new Dictionary<int, int> {
-        [0] = 0,
-        [1] = 0,
-        [2] = 2,
-        [3] = 14,
-        [4] = 14,
-        [5] = 5,
-        [6] = 14,
-        [7] = 14,
-        [8] = 8,
-        [9] = 0,
-        [10] = 14,
-        [11] = 5,
-        [12] = 1,
-        [13] = 0,
-        [14] = 1,
-        [15] = 15,
-        [16] = 0,
-        [17] = 5,
-    };
-
     public UIMenu AddSubMenu(UIMenu menu, string name)
     {
         return AddSubMenu2(menu, name).Item2;
@@ -253,12 +231,6 @@ public class ChangingRoom : Script
                 // textureNum depends on both componentId and drawableId and may now have changed
                 if (item == drawableitem && textureNum != textureNum2)
                     textureitem.Enabled = (textureNum2 >= 2);
-                // try to keep freemode outfit in a valid state
-                if (player_type == PlayerType.PlayerMPMale && componentid == 11)
-                {
-                    if (mp_m_shirt_hands.ContainsKey(drawableId))
-                        NativeSetPedComponentVariation(3, mp_m_shirt_hands[componentid], -1, -1);
-                }
             }
         };
         return subitem;
