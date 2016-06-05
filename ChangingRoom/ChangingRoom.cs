@@ -445,26 +445,6 @@ public class ChangingRoom : Script
             while (!model.IsLoaded) Script.Wait(100);
             Function.Call(Hash.SET_PLAYER_MODEL, Game.Player, model.Hash);
             Function.Call(Hash.SET_PED_DEFAULT_COMPONENT_VARIATION, Game.Player.Character.Handle);
-            // pick a better basis for editing the freemode characters
-            // until we have a better way of creating valid combinations
-            if (hash == PedHash.FreemodeFemale01)
-            {
-                NativeSetPedComponentVariation(2, 4, 3, 0);
-                NativeSetPedComponentVariation(3, 15, 0, 0);
-                NativeSetPedComponentVariation(4, 15, 0, 0);
-                NativeSetPedComponentVariation(6, 5, 0, 0);
-                NativeSetPedComponentVariation(8, 2, 0, 0);
-                NativeSetPedComponentVariation(11, 15, 0, 0);
-            }
-            else if (hash == PedHash.FreemodeMale01)
-            {
-                NativeSetPedComponentVariation(2, 10, 1, 0);
-                NativeSetPedComponentVariation(3, 15, 0, 0);
-                NativeSetPedComponentVariation(4, 14, 0, 0);
-                NativeSetPedComponentVariation(6, 2, 6, 0);
-                NativeSetPedComponentVariation(8, 57, 0, 0);
-                NativeSetPedComponentVariation(11, 15, 0, 0);
-            }
         }
         else
         {
