@@ -24,6 +24,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Windows.Forms;
+using System.Xml;
 
 // all named components, both sp and mp characters
 // there are only 11 components for both sp and mp
@@ -62,13 +63,6 @@ public class ChangingRoom : Script
     static List<dynamic> UI_LIST = Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList();
     private readonly Dictionary<string, PedHash> _pedhash;
     private MenuPool menuPool;
-    public enum PlayerType
-    {
-        PlayerSP,
-        PlayerMPMale,
-        PlayerMPFemale,
-    }
-    public PlayerType player_type = PlayerType.PlayerSP;
 
     public readonly Dictionary<Component, int> sp_componentmap = new Dictionary<Component, int>
     {
@@ -168,7 +162,6 @@ public class ChangingRoom : Script
         submenu.OnItemSelect += (sender, item, index) =>
         {
             NativeSetPlayerModel(_pedhash[item.Text]);
-            player_type = PlayerType.PlayerSP;
         };
     }
 
@@ -299,12 +292,10 @@ public class ChangingRoom : Script
             if (item == male)
             {
                 NativeSetPlayerModel(PedHash.FreemodeMale01);
-                player_type = PlayerType.PlayerMPMale;
             }
             else if (item == female)
             {
                 NativeSetPlayerModel(PedHash.FreemodeFemale01);
-                player_type = PlayerType.PlayerMPFemale;
             }
         };
     }
@@ -329,11 +320,11 @@ public class ChangingRoom : Script
 
     public void ClearPedComponentVariation(int componentid)
     {
-        if (player_type == PlayerType.PlayerMPMale && componentid < 12)
+        if (((PedHash)Game.Player.Character.Model.Hash) == PedHash.FreemodeMale01 && componentid < 12)
         {
             SetPedComponentVariation(componentid, mp_male_clear_drawable[componentid], 0, 0);
         }
-        else if (player_type == PlayerType.PlayerMPFemale && componentid < 12)
+        else if (((PedHash)Game.Player.Character.Model.Hash) == PedHash.FreemodeFemale01 && componentid < 12)
         {
             SetPedComponentVariation(componentid, mp_female_clear_drawable[componentid], 0, 0);
         }
@@ -365,7 +356,8 @@ public class ChangingRoom : Script
 
     public String GetScriptFolder()
     {
-        return System.IO.Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.MyDoc‌​uments), "ChangingRoom");
+        return System.IO.Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "ChangingRoom");
     }
 
     public String GetActorFilename(int slot)
@@ -384,12 +376,74 @@ public class ChangingRoom : Script
     {
         var path = GetActorFilename(slot);
         UI.Notify(String.Format("Saving actor to {0}", path));
+        var settings = new XmlWriterSettings();
+        settings.Indent = true;
+        settings.NewLineOnAttributes = true;
+        using (XmlWriter writer = XmlWriter.Create(path, settings))
+        {
+            writer.WriteStartElement("GtaVNative");
+            {
+                var name = ((PedHash)Game.Player.Character.Model.Hash).ToString();
+                writer.WriteStartElement("SetPlayerModel");
+                writer.WriteAttributeString("name", name);
+                writer.WriteEndElement();
+            }
+            for (int componentId = 0; componentId < 12; componentId++)
+            {
+                var drawableId = NativeGetPedDrawableVariation(componentId);
+                var textureId = NativeGetPedTextureVariation(componentId);
+                var paletteId = NativeGetPedPaletteVariation(componentId);
+                writer.WriteStartElement("SetPedComponentVariation");
+                writer.WriteAttributeString("componentId", componentId.ToString());
+                writer.WriteAttributeString("drawableId", drawableId.ToString());
+                writer.WriteAttributeString("textureId", textureId.ToString());
+                writer.WriteAttributeString("paletteId", paletteId.ToString());
+                writer.WriteEndElement();
+            }
+            for (int propId = 0; propId < 8; propId++)
+            {
+                var drawableId = NativeGetPedPropIndex(propId);
+                var textureId = NativeGetPedPropTextureIndex(propId);
+                writer.WriteStartElement("SetPedPropIndex");
+                writer.WriteAttributeString("propId", propId.ToString());
+                writer.WriteAttributeString("drawableId", drawableId.ToString());
+                writer.WriteAttributeString("textureId", textureId.ToString());
+                writer.WriteEndElement();
+            }
+            writer.WriteEndElement();
+        }
     }
 
     public void LoadActor(UIMenuItem item, int slot)
     {
         var path = GetActorFilename(slot);
         UI.Notify(String.Format("Loading actor from {0}", path));
+        var reader = new XmlTextReader(path);
+        while (reader.Read())
+        {
+            if (reader.Name == "SetPlayerModel")
+            {
+                NativeSetPlayerModel(_pedhash[reader.GetAttribute("name")]);
+            }
+            else if (reader.Name == "SetPedComponentVariation")
+            {
+                NativeSetPedComponentVariation(
+                    Int32.Parse(reader.GetAttribute("componentId")),
+                    Int32.Parse(reader.GetAttribute("drawableId")),
+                    Int32.Parse(reader.GetAttribute("textureId")),
+                    Int32.Parse(reader.GetAttribute("paletteId"))
+                    );
+            }
+            else if (reader.Name == "SetPedPropIndex")
+            {
+                NativeSetPedPropIndex(
+                    Int32.Parse(reader.GetAttribute("propId")),
+                    Int32.Parse(reader.GetAttribute("drawableId")),
+                    Int32.Parse(reader.GetAttribute("textureId"))
+                    );
+            }
+            // more to come
+        }
     }
 
     public ChangingRoom()
@@ -412,6 +466,12 @@ public class ChangingRoom : Script
 
         _pedhash = new Dictionary<string, PedHash>();
         foreach (PedHash x in Enum.GetValues(typeof(PedHash))) _pedhash[x.ToString()] = x;
+        var path = GetScriptFolder();
+        if (!System.IO.Directory.Exists(path))
+        {
+            UI.Notify("Creating directory " + path);
+            System.IO.Directory.CreateDirectory(path);
+        }
     }
 
     public void NativeSetPlayerModel(PedHash hash)
@@ -464,11 +524,6 @@ public class ChangingRoom : Script
             Hash.SET_PED_COMPONENT_VARIATION,
             Game.Player.Character.Handle,
             componentId, drawableId, textureId, paletteId);
-    }
-
-    public void NativeSetPedRandomComponentVariation(bool toggle)
-    {
-        Function.Call(Hash.SET_PED_RANDOM_COMPONENT_VARIATION, Game.Player.Character.Handle, toggle);
     }
 
     public void NativeSetPedPropIndex(int propId, int drawableId, int textureId)
