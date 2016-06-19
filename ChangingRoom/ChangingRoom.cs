@@ -250,6 +250,9 @@ public class PedData
         {
             Function.Call(Hash.SET_PLAYER_MODEL, Game.Player, model.Hash);
             Function.Call(Hash.SET_PED_DEFAULT_COMPONENT_VARIATION, Game.Player.Character.Handle);
+            if (hash == PedHash.FreemodeMale01 || hash == PedHash.FreemodeFemale01)
+                // must call this otherwise head overlays don't work
+                Function.Call(Hash.SET_PED_HEAD_BLEND_DATA, Game.Player.Character.Handle, 0, 0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, true);
             data.Clear();
         }
         model.MarkAsNoLongerNeeded();
@@ -550,8 +553,6 @@ public class ChangingRoom : Script
                 ped_data.ChangePlayerModel(PedHash.FreemodeMale01);
             else if (item == female)
                 ped_data.ChangePlayerModel(PedHash.FreemodeFemale01);
-            // must call this otherwise head overlays don't work
-            Function.Call(Hash.SET_PED_HEAD_BLEND_DATA, Game.Player.Character.Handle, 0, 0, 0, 0, 0, 0, 1.0, 1.0, 1.0, true);
         };
     }
 
