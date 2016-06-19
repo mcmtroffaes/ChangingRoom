@@ -26,35 +26,234 @@ using System.Linq;
 using System.Windows.Forms;
 using System.Xml;
 
-// all named components, both sp and mp characters
-// there are only 11 components for both sp and mp
-// the mapping to actual component numbers is defined
-// further
-public enum Component
+// we abstract away the difference between component variations, props, head overlays, etc.
+// they are all called "slots", and where each slot has a type (e.g. prop) and an id (e.g. prop_id)
+// each slot can be assigned three integer values (e.g. drawable, texture, palette, or could be something else)
+public enum SlotType
 {
-    // components
-    Face,
-    Beard,
-    Haircut,
-    Shirt,
-    SubShirt,
-    Pants,
-    Hands,
-    Shoes,
-    Eyes,
-    Mask,
-    Armour,
-    Parachutes,
-    Accessories,
-    Items,
-    Decals,
-    Collars,
-    // props
-    Hats,
-    Glasses,
-    Earrings,
-    Watches,
-    Bangles,
+    CompVar,
+    Prop,
+    HeadOverlay,
+}
+
+public struct SlotKey
+{
+    public SlotType typ; // compvar, prop, overlay, ...
+    public int id;  // component_id, prop_id, overlay_id, ...
+
+    public SlotKey(SlotType typ_, int id_)
+    {
+        typ = typ_;
+        id = id_;
+    }
+
+    public SlotKey(XmlTextReader reader)
+    {
+        typ = (SlotType)Enum.Parse(typeof(SlotType), reader.GetAttribute("slot_type"));
+        id = int.Parse(reader.GetAttribute("slot_id"));
+    }
+
+    public void WriteXml(XmlWriter writer)
+    {
+        writer.WriteAttributeString("slot_type", typ.ToString());
+        writer.WriteAttributeString("slot_id", id.ToString());
+    }
+}
+
+public struct SlotValue
+{
+    public int index1, index2, index3;
+
+    public SlotValue(int i1, int i2, int i3)
+    {
+        index1 = i1;
+        index2 = i2;
+        index3 = i3;
+    }
+
+    public SlotValue(XmlTextReader reader)
+    {
+        index1 = int.Parse(reader.GetAttribute("index1"));
+        index2 = int.Parse(reader.GetAttribute("index2"));
+        index3 = int.Parse(reader.GetAttribute("index3"));
+    }
+
+    public void WriteXml(XmlWriter writer)
+    {
+        writer.WriteAttributeString("index1", index1.ToString());
+        writer.WriteAttributeString("index2", index2.ToString());
+        writer.WriteAttributeString("index3", index3.ToString());
+    }
+}
+
+public class PedData
+{
+    private Dictionary<SlotKey, SlotValue> data = new Dictionary<SlotKey, SlotValue>();
+
+    public void WriteXml(XmlWriter writer)
+    {
+        foreach (var item in data)
+        {
+            writer.WriteStartElement("SetSlotValue");
+            item.Key.WriteXml(writer);
+            item.Value.WriteXml(writer);
+            writer.WriteEndElement();
+        }
+    }
+
+    private readonly int[] mp_male_clear_drawable =
+    {
+        0, 0, 0, 3, 11, 0, 13, 0, 15, 0, 0, 15
+    };
+
+    private readonly int[] mp_female_clear_drawable =
+    {
+        0, 0, 0, 8, 13, 0, 12, 0, 14, 0, 0, 82
+    };
+
+    public SlotValue GetSlotValue(SlotKey slot)
+    {
+        if (data.ContainsKey(slot))
+            return data[slot];
+        else
+            return new SlotValue(0, 0, 0);
+    }
+
+    public int GetNumIndex1(Ped ped, SlotKey key)
+    {
+        switch (key.typ)
+        {
+            case SlotType.CompVar:
+                return Math.Max(1, Function.Call<int>(
+                    Hash.GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS, ped.Handle, key.id));
+            case SlotType.Prop:
+                // no prop = extra drawable variation in this script
+                return Math.Max(1, Function.Call<int>(
+                    Hash.GET_NUMBER_OF_PED_PROP_DRAWABLE_VARIATIONS, ped.Handle, key.id) + 1);
+            case SlotType.HeadOverlay:
+                // no overlay = extra overlay in this script
+                return Math.Max(1, Function.Call<int>(
+                    Hash._GET_NUM_HEAD_OVERLAY_VALUES, key.id) + 1);
+            default:
+                return 1;
+        }
+    }
+
+    public int GetNumIndex2(Ped ped, SlotKey key)
+    {
+        var slot_value = GetSlotValue(key);
+        return GetNumIndex2(ped, key, slot_value.index1);
+    }
+
+    public int GetNumIndex2(Ped ped, SlotKey key, int index1)
+    {
+        switch (key.typ)
+        {
+            case SlotType.CompVar:
+                // drawable_id = index1
+                return Function.Call<int>(
+                    Hash.GET_NUMBER_OF_PED_TEXTURE_VARIATIONS, ped.Handle, key.id, index1);
+            case SlotType.Prop:
+                if (index1 == 0)
+                    // no prop, so no textures
+                    return 1;
+                else
+                {
+                    // drawable_id = index1 - 1
+                    var num = Function.Call<int>(
+                        Hash.GET_NUMBER_OF_PED_PROP_TEXTURE_VARIATIONS, ped.Handle, key.id, index1 - 1);
+                    // sometimes returns -1 or 0 if there are no textures
+                    return (num <= 0) ? 1 : num;
+
+                }
+            case SlotType.HeadOverlay:
+                if (index1 == 0)
+                    // clear overlay
+                    return 1;
+                else
+                    // opacity: 0 -> 1.0, 7 -> 0.125, in steps of 0.125
+                    return 7;
+            default:
+                return 1;
+        }
+    }
+
+    public int GetNumIndex3(Ped ped, SlotKey key)
+    {
+        var slot_value = GetSlotValue(key);
+        return GetNumIndex3(ped, key, slot_value.index1, slot_value.index2);
+    }
+
+    public int GetNumIndex3(Ped ped, SlotKey key, int index1, int index2)
+    {
+        return 1;
+    }
+
+    public void SetSlotValue(Ped ped, SlotKey slot_key, SlotValue slot_value)
+    {
+        switch (slot_key.typ)
+        {
+            case SlotType.CompVar:
+                Function.Call(
+                    Hash.SET_PED_COMPONENT_VARIATION,
+                    ped.Handle,
+                    slot_key.id, slot_value.index1, slot_value.index2, slot_value.index3);
+                break;
+            case SlotType.Prop:
+                if (slot_value.index1 == 0)
+                    Function.Call(Hash.CLEAR_PED_PROP, ped.Handle, slot_key.id);
+                else
+                    Function.Call(Hash.SET_PED_PROP_INDEX, ped.Handle, slot_key.id, slot_value.index1 - 1, slot_value.index2, true);
+                break;
+            case SlotType.HeadOverlay:
+                if (slot_value.index1 == 0)
+                    Function.Call(Hash.SET_PED_HEAD_OVERLAY, ped.Handle, slot_key.id, 0, 0.0f);
+                else
+                    Function.Call(Hash.SET_PED_HEAD_OVERLAY, ped.Handle, slot_key.id, slot_value.index1 - 1, (8 - slot_value.index2) / 8.0f);
+                break;
+        }
+        if (slot_value.index1 == 0 && slot_value.index2 == 0 && slot_value.index3 == 0)
+            data.Remove(slot_key);
+        else
+            data[slot_key] = slot_value;
+    }
+
+    public void ClearSlotValue(Ped ped, SlotKey slot_key)
+    {
+        var slot_value = new SlotValue(0, 0, 0);
+        if (slot_key.typ == SlotType.CompVar)
+        {
+            var hash = (PedHash)ped.Model.Hash;
+            if (hash == PedHash.FreemodeMale01)
+                slot_value.index1 = mp_male_clear_drawable[slot_key.id];
+            else if (hash == PedHash.FreemodeFemale01)
+                slot_value.index1 = mp_female_clear_drawable[slot_key.id];
+        }
+        SetSlotValue(ped, slot_key, slot_value);
+    }
+
+    public void ChangePlayerModel(PedHash hash)
+    {
+        var model = new Model(hash);
+        // only in recent script hook
+        /*
+        if (!Game.Player.ChangeModel(model))
+        {
+            UI.Notify("could not request model");
+        }
+        */
+        if (!model.IsInCdImage || !model.IsPed || !model.Request(1000))
+        {
+            UI.Notify("could not request model");
+        }
+        else
+        {
+            Function.Call(Hash.SET_PLAYER_MODEL, Game.Player, model.Hash);
+            Function.Call(Hash.SET_PED_DEFAULT_COMPONENT_VARIATION, Game.Player.Character.Handle);
+            data.Clear();
+        }
+        model.MarkAsNoLongerNeeded();
+    }
 }
 
 public class ChangingRoom : Script
@@ -64,57 +263,116 @@ public class ChangingRoom : Script
     private readonly Dictionary<string, PedHash> _pedhash;
     private MenuPool menuPool;
 
-    public readonly Dictionary<Component, int> sp_componentmap = new Dictionary<Component, int>
+    // all named slot key names, both sp and mp characters
+    // the mapping to actual slot keys is defined further
+    public enum SlotKeyName
     {
-        [Component.Face] = 0,
-        [Component.Beard] = 1,
-        [Component.Haircut] = 2,
-        [Component.Shirt] = 3,
-        [Component.Pants] = 4,
-        [Component.Hands] = 5,
-        [Component.Shoes] = 6,
-        [Component.Eyes] = 7,
-        [Component.Accessories] = 8,
-        [Component.Items] = 9,
-        [Component.Decals] = 10,
-        [Component.Collars] = 11,
-        [Component.Hats] = 1000,
-        [Component.Glasses] = 1001,
-        [Component.Earrings] = 1002,
-        [Component.Watches] = 1006,
-        [Component.Bangles] = 1007,
+        // component variations
+        Face,
+        Beard,
+        Haircut,
+        Shirt,
+        SubShirt,
+        Pants,
+        Hands,
+        Shoes,
+        Eyes,
+        Mask,
+        Armour,
+        Parachutes,
+        Accessories,
+        Items,
+        Decals,
+        Collars,
+        // props
+        Hats,
+        Glasses,
+        Earrings,
+        Watches,
+        Bangles,
+        // head overlays
+        Blemishes,
+        FacialHair,
+        Eyebrows,
+        Ageing,
+        Makeup,
+        Blush,
+        Complexion,
+        SunDamage,
+        Lipstick,
+        Moles,
+        ChestHair,
+        BodyBlemishes,
+        AddBodyBlemishes,
+    }
+
+    // all named slot value names
+    // mapping to actual slot values is defined further
+    public enum SlotValueName
+    {
+        Drawable,
+        Texture,
+        Palette,
+        Opacity,
+    }
+
+    public readonly Dictionary<SlotKeyName, SlotKey> sp_slots = new Dictionary<SlotKeyName, SlotKey>
+    {
+        [SlotKeyName.Face] = new SlotKey(SlotType.CompVar, 0),
+        [SlotKeyName.Beard] = new SlotKey(SlotType.CompVar, 1),
+        [SlotKeyName.Haircut] = new SlotKey(SlotType.CompVar, 2),
+        [SlotKeyName.Shirt] = new SlotKey(SlotType.CompVar, 3),
+        [SlotKeyName.Pants] = new SlotKey(SlotType.CompVar, 4),
+        [SlotKeyName.Hands] = new SlotKey(SlotType.CompVar, 5),
+        [SlotKeyName.Shoes] = new SlotKey(SlotType.CompVar, 6),
+        [SlotKeyName.Eyes] = new SlotKey(SlotType.CompVar, 7),
+        [SlotKeyName.Accessories] = new SlotKey(SlotType.CompVar, 8),
+        [SlotKeyName.Items] = new SlotKey(SlotType.CompVar, 9),
+        [SlotKeyName.Decals] = new SlotKey(SlotType.CompVar, 10),
+        [SlotKeyName.Collars] = new SlotKey(SlotType.CompVar, 11),
+        [SlotKeyName.Hats] = new SlotKey(SlotType.Prop, 0),
+        [SlotKeyName.Glasses] = new SlotKey(SlotType.Prop, 1),
+        [SlotKeyName.Earrings] = new SlotKey(SlotType.Prop, 2),
+        [SlotKeyName.Watches] = new SlotKey(SlotType.Prop, 6),
+        [SlotKeyName.Bangles] = new SlotKey(SlotType.Prop, 7),
     };
 
-    public readonly Dictionary<Component, int> mp_componentmap = new Dictionary<Component, int>
+    public readonly Dictionary<SlotKeyName, SlotKey> mp_slots = new Dictionary<SlotKeyName, SlotKey>
     {
-        [Component.Face] = 0,
-        [Component.Mask] = 1,
-        [Component.Haircut] = 2,
-        [Component.Hands] = 3,
-        [Component.Pants] = 4,
-        [Component.Parachutes] = 5,
-        [Component.Shoes] = 6,
-        [Component.Accessories] = 7,
-        [Component.SubShirt] = 8,
-        [Component.Armour] = 9,
-        [Component.Decals] = 10,
-        [Component.Shirt] = 11,
-        [Component.Hats] = 1000,
-        [Component.Glasses] = 1001,
-        [Component.Earrings] = 1002,
-        [Component.Watches] = 1006,
-        [Component.Bangles] = 1007,
+        [SlotKeyName.Face] = new SlotKey(SlotType.CompVar, 0),
+        [SlotKeyName.Mask] = new SlotKey(SlotType.CompVar, 1),
+        [SlotKeyName.Haircut] = new SlotKey(SlotType.CompVar, 2),
+        [SlotKeyName.Hands] = new SlotKey(SlotType.CompVar, 3),
+        [SlotKeyName.Pants] = new SlotKey(SlotType.CompVar, 4),
+        [SlotKeyName.Parachutes] = new SlotKey(SlotType.CompVar, 5),
+        [SlotKeyName.Shoes] = new SlotKey(SlotType.CompVar, 6),
+        [SlotKeyName.Accessories] = new SlotKey(SlotType.CompVar, 7),
+        [SlotKeyName.SubShirt] = new SlotKey(SlotType.CompVar, 8),
+        [SlotKeyName.Armour] = new SlotKey(SlotType.CompVar, 9),
+        [SlotKeyName.Decals] = new SlotKey(SlotType.CompVar, 10),
+        [SlotKeyName.Shirt] = new SlotKey(SlotType.CompVar, 11),
+        [SlotKeyName.Hats] = new SlotKey(SlotType.Prop, 0),
+        [SlotKeyName.Glasses] = new SlotKey(SlotType.Prop, 1),
+        [SlotKeyName.Earrings] = new SlotKey(SlotType.Prop, 2),
+        [SlotKeyName.Watches] = new SlotKey(SlotType.Prop, 6),
+        [SlotKeyName.Bangles] = new SlotKey(SlotType.Prop, 7),
+        [SlotKeyName.Blemishes] = new SlotKey(SlotType.HeadOverlay, 0),
+        [SlotKeyName.FacialHair] = new SlotKey(SlotType.HeadOverlay, 1),
+        [SlotKeyName.Eyebrows] = new SlotKey(SlotType.HeadOverlay, 2),
+        [SlotKeyName.Ageing] = new SlotKey(SlotType.HeadOverlay, 3),
+        [SlotKeyName.Makeup] = new SlotKey(SlotType.HeadOverlay, 4),
+        [SlotKeyName.Blush] = new SlotKey(SlotType.HeadOverlay, 5),
+        [SlotKeyName.Complexion] = new SlotKey(SlotType.HeadOverlay, 6),
+        [SlotKeyName.SunDamage] = new SlotKey(SlotType.HeadOverlay, 7),
+        [SlotKeyName.Lipstick] = new SlotKey(SlotType.HeadOverlay, 8),
+        [SlotKeyName.Moles] = new SlotKey(SlotType.HeadOverlay, 9),
+        [SlotKeyName.ChestHair] = new SlotKey(SlotType.HeadOverlay, 10),
+        [SlotKeyName.BodyBlemishes] = new SlotKey(SlotType.HeadOverlay, 11),
+        [SlotKeyName.AddBodyBlemishes] = new SlotKey(SlotType.HeadOverlay, 12),
     };
 
-    public readonly List<int> mp_male_clear_drawable = new List<int>
-    {
-        0, 0, 0, 3, 11, 0, 13, 0, 15, 0, 0, 15
-    };
-
-    public readonly List<int> mp_female_clear_drawable = new List<int>
-    {
-        0, 0, 0, 8, 13, 0, 12, 0, 14, 0, 0, 82
-    };
+    // map slot type and slot id to drawable, texture, and palette
+    public PedData ped_data = new PedData();
 
     public UIMenu AddSubMenu(UIMenu menu, string name)
     {
@@ -140,7 +398,7 @@ public class ChangingRoom : Script
     {
         var submenu = AddSubMenu(menu, "Story Mode");
         AddStorymodeModelToMenu(submenu);
-        AddChangeOutfitToMenu(submenu, sp_componentmap);
+        AddChangeOutfitToMenu(submenu, sp_slots);
         AddClearOutfitToMenu(submenu);
     }
 
@@ -161,21 +419,21 @@ public class ChangingRoom : Script
         }
         submenu.OnItemSelect += (sender, item, index) =>
         {
-            NativeSetPlayerModel(_pedhash[item.Text]);
+            ped_data.ChangePlayerModel(_pedhash[item.Text]);
         };
     }
 
-    public void AddChangeOutfitToMenu(UIMenu menu, Dictionary<Component, int> componentmap)
+    public void AddChangeOutfitToMenu(UIMenu menu, Dictionary<SlotKeyName, SlotKey> slot_map)
     {
         var result = AddSubMenu2(menu, "Change Outfit");
         var outfititem = result.Item1;
         var outfitmenu = result.Item2;
-        var componentitems = new List<Tuple<Component, UIMenuItem>>();
-        foreach (Component component in Enum.GetValues(typeof(Component)))
-            if (componentmap.ContainsKey(component))
+        var componentitems = new List<Tuple<SlotKeyName, UIMenuItem>>();
+        foreach (SlotKeyName slot in Enum.GetValues(typeof(SlotKeyName)))
+            if (slot_map.ContainsKey(slot))
             {
-                var subitem = AddComponentToMenu(outfitmenu, component.ToString(), componentmap[component]);
-                componentitems.Add(Tuple.Create(component, subitem));
+                var subitem = AddComponentToMenu(outfitmenu, slot.ToString(), slot_map[slot]);
+                componentitems.Add(Tuple.Create(slot, subitem));
             }
         menu.OnItemSelect += (sender, item, index) =>
         {
@@ -186,23 +444,24 @@ public class ChangingRoom : Script
                 {
                     var component = componentitem.Item1;
                     var subitem = componentitem.Item2;
-                    var componentid = componentmap[component];
-                    subitem.Enabled = (GetNumPedDrawableVariations(componentid) >= 2) || (GetNumPedTextureVariations(componentid, 0) >= 2);
+                    var slot_key = slot_map[component];
+                    var ped = Game.Player.Character;
+                    subitem.Enabled = (ped_data.GetNumIndex1(ped, slot_key) >= 2) || (ped_data.GetNumIndex2(ped, slot_key, 0) >= 2);
                 }
             }
         };
     }
 
-    public UIMenuItem AddComponentToMenu(UIMenu menu, string text, int componentid)
+    public UIMenuItem AddComponentToMenu(UIMenu menu, string text, SlotKey slot_key)
     {
         var result = AddSubMenu2(menu, text);
         var subitem = result.Item1;
         var submenu = result.Item2;
-        var drawableitem = new UIMenuListItem("Model", UI_LIST, 0);
-        var textureitem = new UIMenuListItem("Texture", UI_LIST, 0);
+        var listitem1 = new UIMenuListItem("Model", UI_LIST, 0);
+        var listitem2 = new UIMenuListItem("Texture", UI_LIST, 0);
         var clearitem = new UIMenuItem("Clear");
-        submenu.AddItem(drawableitem);
-        submenu.AddItem(textureitem);
+        submenu.AddItem(listitem1);
+        submenu.AddItem(listitem2);
         submenu.AddItem(clearitem);
         menu.OnItemSelect += (sender, item, index) =>
         {
@@ -210,64 +469,62 @@ public class ChangingRoom : Script
             {
                 // display correct indices for model and texture
                 // and enable item if there's anything to change
-                var drawableid = GetPedDrawableVariation(componentid);
-                drawableitem.Index = drawableid;
-                drawableitem.Enabled = (GetNumPedDrawableVariations(componentid) >= 2);
-                var textureid = GetPedTextureVariation(componentid);
-                textureitem.Index = textureid;
-                textureitem.Enabled = (GetNumPedTextureVariations(componentid, drawableid) >= 2);
+                var ped = Game.Player.Character;
+                var slot_value = ped_data.GetSlotValue(slot_key);
+                listitem1.Index = slot_value.index1;
+                listitem1.Enabled = (ped_data.GetNumIndex1(ped, slot_key) >= 2);
+                listitem2.Index = slot_value.index2;
+                listitem2.Enabled = (ped_data.GetNumIndex2(ped, slot_key) >= 2);
             }
         };
         submenu.OnListChange += (sender, item, index) =>
         {
-            if (item == drawableitem || item == textureitem)
+            if (item == listitem1 || item == listitem2)
             {
-                var drawableId = GetPedDrawableVariation(componentid);
-                var textureId = GetPedTextureVariation(componentid);
-                var drawableNum = GetNumPedDrawableVariations(componentid);
-                var textureNum = GetNumPedTextureVariations(componentid, drawableId);
+                var ped = Game.Player.Character;
+                var slot_value = ped_data.GetSlotValue(slot_key);
+                var numIndex1 = ped_data.GetNumIndex1(ped, slot_key);
+                var numIndex2 = ped_data.GetNumIndex2(ped, slot_key);
                 // we need to ensure that the new id is valid as the menu has more items than number of ids supported by the game
-                var num = (item == drawableitem) ? drawableNum : textureNum;
-                // GET_NUMBER_OF_PED_..._VARIATIONS sometimes returns 0, in this case there is also exactly one variation
-                var maxid = Math.Max(0, num - 1);
+                var maxid = Math.Min(UI_LIST_MAX, ((item == listitem1) ? numIndex1 : numIndex2)) - 1;
+                System.Diagnostics.Debug.Assert(maxid >= 0);
+                System.Diagnostics.Debug.Assert(maxid <= UI_LIST_MAX - 1);
                 if (index > maxid)
                 {
                     // wrap the index depending on whether user scrolled forward or backward
                     index = (index == UI_LIST_MAX - 1) ? maxid : 0;
                     item.Index = index;
                 }
-                var textureNum2 = textureNum;  // new textureNum after changing drawableId (if changed)
-                if (item == drawableitem)
+                var newNumIndex2 = numIndex2;  // new textureNum after changing drawableId (if changed)
+                if (item == listitem1)
                 {
-                    drawableId = index;
-                    textureNum2 = GetNumPedTextureVariations(componentid, drawableId);
+                    slot_value.index1 = index;
+                    newNumIndex2 = ped_data.GetNumIndex2(ped, slot_key, slot_value.index1);
                     // correct current texture id if it is out of range
                     // we pick the nearest integer
-                    if (textureId >= textureNum2) textureId = textureNum2 - 1;
+                    if (slot_value.index2 >= newNumIndex2) slot_value.index2 = newNumIndex2 - 1;
+                    // update listitem2 index and enabled flag
+                    listitem2.Index = slot_value.index2;
+                    listitem2.Enabled = (newNumIndex2 >= 2);
                 }
                 else
                 {
-                    textureId = index;
+                    slot_value.index2 = index;
                 }
-                SetPedComponentVariation(componentid, drawableId, textureId, 0);
-                // when changing drawableId, the texture item might need to be enabled or disabled
-                // textureNum depends on both componentId and drawableId and may now have changed
-                if (item == drawableitem && textureNum != textureNum2)
-                    textureitem.Enabled = (textureNum2 >= 2);
+                ped_data.SetSlotValue(ped, slot_key, slot_value);
             }
         };
         submenu.OnItemSelect += (sender, item, index) =>
         {
             if (item == clearitem)
             {
-                ClearPedComponentVariation(componentid);
+                var ped = Game.Player.Character;
+                ped_data.ClearSlotValue(ped, slot_key);
                 // update menu items
-                var drawableId = GetPedDrawableVariation(componentid);
-                var textureId = GetPedTextureVariation(componentid);
-                var textureNum = GetNumPedTextureVariations(componentid, drawableId);
-                drawableitem.Index = drawableId;
-                textureitem.Index = textureId;
-                textureitem.Enabled = (textureNum >= 2);
+                var slot_value = ped_data.GetSlotValue(slot_key);
+                listitem1.Index = slot_value.index1;
+                listitem2.Index = slot_value.index2;
+                listitem2.Enabled = (ped_data.GetNumIndex2(ped, slot_key, slot_value.index1) >= 2);
             }
         };
         return subitem;
@@ -277,7 +534,7 @@ public class ChangingRoom : Script
     {
         var submenu = AddSubMenu(menu, "Free Mode");
         AddFreemodeModelToMenu(submenu);
-        AddChangeOutfitToMenu(submenu, mp_componentmap);
+        AddChangeOutfitToMenu(submenu, mp_slots);
         AddClearOutfitToMenu(submenu);
     }
 
@@ -290,14 +547,18 @@ public class ChangingRoom : Script
         menu.OnItemSelect += (sender, item, index) =>
         {
             if (item == male)
-            {
-                NativeSetPlayerModel(PedHash.FreemodeMale01);
-            }
+                ped_data.ChangePlayerModel(PedHash.FreemodeMale01);
             else if (item == female)
-            {
-                NativeSetPlayerModel(PedHash.FreemodeFemale01);
-            }
+                ped_data.ChangePlayerModel(PedHash.FreemodeFemale01);
+            // must call this otherwise head overlays don't work
+            Function.Call(Hash.SET_PED_HEAD_BLEND_DATA, Game.Player.Character.Handle, 0, 0, 0, 0, 0, 0, 1.0, 1.0, 1.0, true);
         };
+    }
+
+    public bool IsPedFreemode(Ped ped)
+    {
+        var hash = (PedHash)ped.Model.Hash;
+        return hash == PedHash.FreemodeMale01 || hash == PedHash.FreemodeFemale01;
     }
 
     public void AddClearOutfitToMenu(UIMenu menu)
@@ -308,30 +569,13 @@ public class ChangingRoom : Script
         {
             if (item == clearitem)
             {
+                var ped = Game.Player.Character;
                 // components
-                for (int componentid = 0; componentid < 12; componentid++)
-                    ClearPedComponentVariation(componentid);
-                // props
-                for (int componentid = 1000; componentid < 1008; componentid++)
-                    ClearPedComponentVariation(componentid);
+                var slots = IsPedFreemode(ped) ? mp_slots : sp_slots;
+                foreach (var slot_key in slots.Values)
+                    ped_data.ClearSlotValue(ped, slot_key);
             }
         };
-    }
-
-    public void ClearPedComponentVariation(int componentid)
-    {
-        if (((PedHash)Game.Player.Character.Model.Hash) == PedHash.FreemodeMale01 && componentid < 12)
-        {
-            SetPedComponentVariation(componentid, mp_male_clear_drawable[componentid], 0, 0);
-        }
-        else if (((PedHash)Game.Player.Character.Model.Hash) == PedHash.FreemodeFemale01 && componentid < 12)
-        {
-            SetPedComponentVariation(componentid, mp_female_clear_drawable[componentid], 0, 0);
-        }
-        else
-        {
-            SetPedComponentVariation(componentid, 0, 0, 0);
-        }
     }
 
     public void AddActorActionToMenu(UIMenu menu, String name, Action<UIMenuItem, int> action, Func<int, bool> ticked)
@@ -388,28 +632,7 @@ public class ChangingRoom : Script
                 writer.WriteAttributeString("name", name);
                 writer.WriteEndElement();
             }
-            for (int componentId = 0; componentId < 12; componentId++)
-            {
-                var drawableId = NativeGetPedDrawableVariation(componentId);
-                var textureId = NativeGetPedTextureVariation(componentId);
-                var paletteId = NativeGetPedPaletteVariation(componentId);
-                writer.WriteStartElement("SetPedComponentVariation");
-                writer.WriteAttributeString("componentId", componentId.ToString());
-                writer.WriteAttributeString("drawableId", drawableId.ToString());
-                writer.WriteAttributeString("textureId", textureId.ToString());
-                writer.WriteAttributeString("paletteId", paletteId.ToString());
-                writer.WriteEndElement();
-            }
-            for (int propId = 0; propId < 8; propId++)
-            {
-                var drawableId = NativeGetPedPropIndex(propId);
-                var textureId = NativeGetPedPropTextureIndex(propId);
-                writer.WriteStartElement("SetPedPropIndex");
-                writer.WriteAttributeString("propId", propId.ToString());
-                writer.WriteAttributeString("drawableId", drawableId.ToString());
-                writer.WriteAttributeString("textureId", textureId.ToString());
-                writer.WriteEndElement();
-            }
+            ped_data.WriteXml(writer);
             writer.WriteEndElement();
         }
     }
@@ -423,26 +646,14 @@ public class ChangingRoom : Script
         {
             if (reader.Name == "SetPlayerModel")
             {
-                NativeSetPlayerModel(_pedhash[reader.GetAttribute("name")]);
+                ped_data.ChangePlayerModel(_pedhash[reader.GetAttribute("name")]);
             }
-            else if (reader.Name == "SetPedComponentVariation")
+            else if (reader.Name == "SetSlotValue")
             {
-                NativeSetPedComponentVariation(
-                    Int32.Parse(reader.GetAttribute("componentId")),
-                    Int32.Parse(reader.GetAttribute("drawableId")),
-                    Int32.Parse(reader.GetAttribute("textureId")),
-                    Int32.Parse(reader.GetAttribute("paletteId"))
-                    );
+                var key = new SlotKey(reader);
+                var val = new SlotValue(reader);
+                ped_data.SetSlotValue(Game.Player.Character, key, val);
             }
-            else if (reader.Name == "SetPedPropIndex")
-            {
-                NativeSetPedPropIndex(
-                    Int32.Parse(reader.GetAttribute("propId")),
-                    Int32.Parse(reader.GetAttribute("drawableId")),
-                    Int32.Parse(reader.GetAttribute("textureId"))
-                    );
-            }
-            // more to come
         }
     }
 
@@ -471,152 +682,6 @@ public class ChangingRoom : Script
         {
             UI.Notify("Creating directory " + path);
             System.IO.Directory.CreateDirectory(path);
-        }
-    }
-
-    public void NativeSetPlayerModel(PedHash hash)
-    {
-        var model = new Model(hash);
-        model.Request(500);
-        if (model.IsInCdImage && model.IsValid)
-        {
-            while (!model.IsLoaded) Script.Wait(100);
-            Function.Call(Hash.SET_PLAYER_MODEL, Game.Player, model.Hash);
-            Function.Call(Hash.SET_PED_DEFAULT_COMPONENT_VARIATION, Game.Player.Character.Handle);
-        }
-        else
-        {
-            UI.Notify("could not request model");
-        }
-        model.MarkAsNoLongerNeeded();
-    }
-
-    public int NativeGetNumPedDrawableVariations(int componentId)
-    {
-        return Function.Call<int>(
-            Hash.GET_NUMBER_OF_PED_DRAWABLE_VARIATIONS, Game.Player.Character.Handle, componentId);
-    }
-
-    public int NativeGetNumPedTextureVariations(int componentId, int drawableId)
-    {
-        return Function.Call<int>(
-            Hash.GET_NUMBER_OF_PED_TEXTURE_VARIATIONS, Game.Player.Character.Handle, componentId, drawableId);
-    }
-
-    public int NativeGetPedDrawableVariation(int componentId)
-    {
-        return Function.Call<int>(Hash.GET_PED_DRAWABLE_VARIATION, Game.Player.Character.Handle, componentId);
-    }
-
-    public int NativeGetPedTextureVariation(int componentId)
-    {
-        return Function.Call<int>(Hash.GET_PED_TEXTURE_VARIATION, Game.Player.Character.Handle, componentId);
-    }
-
-    public int NativeGetPedPaletteVariation(int componentId)
-    {
-        return Function.Call<int>(Hash.GET_PED_PALETTE_VARIATION, Game.Player.Character.Handle, componentId);
-    }
-
-    public void NativeSetPedComponentVariation(int componentId, int drawableId, int textureId, int paletteId)
-    {
-        Function.Call(
-            Hash.SET_PED_COMPONENT_VARIATION,
-            Game.Player.Character.Handle,
-            componentId, drawableId, textureId, paletteId);
-    }
-
-    public void NativeSetPedPropIndex(int propId, int drawableId, int textureId)
-    {
-        Function.Call(Hash.SET_PED_PROP_INDEX, Game.Player.Character.Handle, propId, drawableId, textureId, true);
-    }
-
-    public int NativeGetPedPropIndex(int propId) // returns drawableId
-    {
-        return Function.Call<int>(Hash.GET_PED_PROP_INDEX, Game.Player.Character.Handle, propId);
-    }
-
-    public int NativeGetPedPropTextureIndex(int propId) // returns textureId
-    {
-        return Function.Call<int>(Hash.GET_PED_PROP_TEXTURE_INDEX, Game.Player.Character.Handle, propId);
-    }
-
-    public void NativeClearPedProp(int propId)
-    {
-        Function.Call(Hash.CLEAR_PED_PROP, Game.Player.Character.Handle, propId);
-    }
-
-    public int NativeGetNumberOfPedPropDrawableVariations(int propId)
-    {
-        return Function.Call<int>(
-            Hash.GET_NUMBER_OF_PED_PROP_DRAWABLE_VARIATIONS, Game.Player.Character.Handle, propId);
-    }
-
-    public int NativeGetNumberOfPedPropTextureVariations(int propId, int drawableId)
-    {
-        return Function.Call<int>(
-            Hash.GET_NUMBER_OF_PED_PROP_TEXTURE_VARIATIONS, Game.Player.Character.Handle, propId, drawableId);
-    }
-
-    public int GetNumPedDrawableVariations(int componentId)
-    {
-        if (componentId < 1000)
-            return NativeGetNumPedDrawableVariations(componentId);
-        else
-            // no prop = extra drawable variation in this script
-            return NativeGetNumberOfPedPropDrawableVariations(componentId - 1000) + 1;
-    }
-
-    public int GetNumPedTextureVariations(int componentId, int drawableId)
-    {
-        if (componentId < 1000)
-        {
-            return NativeGetNumPedTextureVariations(componentId, drawableId);
-        }
-        else
-        {
-            if (drawableId == 0)
-                // no prop, so no textures
-                return 0;
-            else
-                // native drawableId = script drawableId - 1
-                // sometimes returns -1 if there are no textures, so max with 0
-                return Math.Max(0, NativeGetNumberOfPedPropTextureVariations(componentId - 1000, drawableId - 1));
-        }
-    }
-
-    public int GetPedDrawableVariation(int componentId)
-    {
-        if (componentId < 1000)
-            return NativeGetPedDrawableVariation(componentId);
-        else
-            // script drawableId = native drawableId + 1
-            return NativeGetPedPropIndex(componentId - 1000) + 1;
-    }
-
-    public int GetPedTextureVariation(int componentId)
-    {
-        if (componentId < 1000)
-            return NativeGetPedTextureVariation(componentId);
-        else
-            // can return negative index; this means that there is no choice so just return 0
-            return Math.Max(0, NativeGetPedPropTextureIndex(componentId - 1000));
-    }
-
-    public void SetPedComponentVariation(int componentId, int drawableId, int textureId, int paletteId)
-    {
-        if (componentId < 1000)
-        {
-            NativeSetPedComponentVariation(componentId, drawableId, textureId, paletteId);
-        }
-        else
-        {
-            if (drawableId == 0)
-                // no prop
-                NativeClearPedProp(componentId - 1000);
-            else
-                // native drawableId = script drawableId - 1
-                NativeSetPedPropIndex(componentId - 1000, drawableId - 1, textureId);
         }
     }
 }
