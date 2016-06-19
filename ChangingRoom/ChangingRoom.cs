@@ -88,6 +88,13 @@ public struct SlotValue
 
 public class PedData
 {
+    private static readonly Dictionary<SlotType, int> slot_type_num_id = new Dictionary<SlotType, int>
+    {
+        [SlotType.CompVar] = 12,
+        [SlotType.Prop] = 8,
+        [SlotType.HeadOverlay] = 13,
+    };
+
     private Dictionary<SlotKey, SlotValue> data = new Dictionary<SlotKey, SlotValue>();
 
     public void WriteXml(XmlWriter writer)
@@ -119,7 +126,12 @@ public class PedData
             return new SlotValue(0, 0, 0);
     }
 
-    public int GetNumIndex1(Ped ped, SlotKey key)
+    public static int GetNumId(SlotType typ)
+    {
+        return slot_type_num_id[typ];
+    }
+
+    public static int GetNumIndex1(Ped ped, SlotKey key)
     {
         switch (key.typ)
         {
@@ -145,7 +157,7 @@ public class PedData
         return GetNumIndex2(ped, key, slot_value.index1);
     }
 
-    public int GetNumIndex2(Ped ped, SlotKey key, int index1)
+    public static int GetNumIndex2(Ped ped, SlotKey key, int index1)
     {
         switch (key.typ)
         {
@@ -184,7 +196,7 @@ public class PedData
         return GetNumIndex3(ped, key, slot_value.index1, slot_value.index2);
     }
 
-    public int GetNumIndex3(Ped ped, SlotKey key, int index1, int index2)
+    public static int GetNumIndex3(Ped ped, SlotKey key, int index1, int index2)
     {
         return 1;
     }
@@ -307,16 +319,6 @@ public class ChangingRoom : Script
         ChestHair,
         BodyBlemishes,
         AddBodyBlemishes,
-    }
-
-    // all named slot value names
-    // mapping to actual slot values is defined further
-    public enum SlotValueName
-    {
-        Drawable,
-        Texture,
-        Palette,
-        Opacity,
     }
 
     public readonly Dictionary<SlotKeyName, SlotKey> sp_slots = new Dictionary<SlotKeyName, SlotKey>
@@ -449,7 +451,7 @@ public class ChangingRoom : Script
                     var subitem = slotitem.Item2;
                     var slot_key = slot_map[slot_key_name];
                     var ped = Game.Player.Character;
-                    subitem.Enabled = (ped_data.GetNumIndex1(ped, slot_key) >= 2) || (ped_data.GetNumIndex2(ped, slot_key, 0) >= 2);
+                    subitem.Enabled = (PedData.GetNumIndex1(ped, slot_key) >= 2) || (PedData.GetNumIndex2(ped, slot_key, 0) >= 2);
                 }
             }
         };
@@ -475,7 +477,7 @@ public class ChangingRoom : Script
                 var ped = Game.Player.Character;
                 var slot_value = ped_data.GetSlotValue(slot_key);
                 listitem1.Index = slot_value.index1;
-                listitem1.Enabled = (ped_data.GetNumIndex1(ped, slot_key) >= 2);
+                listitem1.Enabled = (PedData.GetNumIndex1(ped, slot_key) >= 2);
                 listitem2.Index = slot_value.index2;
                 listitem2.Enabled = (ped_data.GetNumIndex2(ped, slot_key) >= 2);
             }
@@ -486,7 +488,7 @@ public class ChangingRoom : Script
             {
                 var ped = Game.Player.Character;
                 var slot_value = ped_data.GetSlotValue(slot_key);
-                var numIndex1 = ped_data.GetNumIndex1(ped, slot_key);
+                var numIndex1 = PedData.GetNumIndex1(ped, slot_key);
                 var numIndex2 = ped_data.GetNumIndex2(ped, slot_key);
                 // we need to ensure that the new id is valid as the menu has more items than number of ids supported by the game
                 var maxid = Math.Min(UI_LIST_MAX, ((item == listitem1) ? numIndex1 : numIndex2)) - 1;
@@ -502,7 +504,7 @@ public class ChangingRoom : Script
                 if (item == listitem1)
                 {
                     slot_value.index1 = index;
-                    newNumIndex2 = ped_data.GetNumIndex2(ped, slot_key, slot_value.index1);
+                    newNumIndex2 = PedData.GetNumIndex2(ped, slot_key, slot_value.index1);
                     // correct current index2 if it is out of range
                     // we pick the nearest integer
                     if (slot_value.index2 >= newNumIndex2) slot_value.index2 = newNumIndex2 - 1;
@@ -527,7 +529,7 @@ public class ChangingRoom : Script
                 var slot_value = ped_data.GetSlotValue(slot_key);
                 listitem1.Index = slot_value.index1;
                 listitem2.Index = slot_value.index2;
-                listitem2.Enabled = (ped_data.GetNumIndex2(ped, slot_key, slot_value.index1) >= 2);
+                listitem2.Enabled = (PedData.GetNumIndex2(ped, slot_key, slot_value.index1) >= 2);
             }
         };
         return subitem;
@@ -571,9 +573,12 @@ public class ChangingRoom : Script
             if (item == clearitem)
             {
                 var ped = Game.Player.Character;
-                var slots = IsPedFreemode(ped) ? mp_slots : sp_slots;
-                foreach (var slot_key in slots.Values)
-                    ped_data.ClearSlotValue(ped, slot_key);
+                foreach (SlotType slot_type in Enum.GetValues(typeof(SlotType)))
+                    for (int slot_id=0; slot_id < PedData.GetNumId(slot_type); slot_id++)
+                    {
+                        var slot_key = new SlotKey(slot_type, slot_id);
+                        ped_data.ClearSlotValue(ped, slot_key);
+                    }
             }
         };
     }
