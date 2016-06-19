@@ -278,104 +278,6 @@ public class ChangingRoom : Script
     private readonly Dictionary<string, PedHash> _pedhash;
     private MenuPool menuPool;
 
-    // all named slot key names, both sp and mp characters
-    // the mapping to actual slot keys is defined further
-    public enum SlotKeyName
-    {
-        // component variations
-        Face,
-        Beard,
-        Haircut,
-        Shirt,
-        SubShirt,
-        Pants,
-        Hands,
-        Shoes,
-        Eyes,
-        Mask,
-        Armour,
-        Parachutes,
-        Accessories,
-        Items,
-        Decals,
-        Collars,
-        // props
-        Hats,
-        Glasses,
-        Earrings,
-        Watches,
-        Bangles,
-        // head overlays
-        Blemishes,
-        FacialHair,
-        Eyebrows,
-        Ageing,
-        Makeup,
-        Blush,
-        Complexion,
-        SunDamage,
-        Lipstick,
-        Moles,
-        ChestHair,
-        BodyBlemishes,
-        AddBodyBlemishes,
-    }
-
-    public readonly Dictionary<SlotKeyName, SlotKey> sp_slots = new Dictionary<SlotKeyName, SlotKey>
-    {
-        [SlotKeyName.Face] = new SlotKey(SlotType.CompVar, 0),
-        [SlotKeyName.Beard] = new SlotKey(SlotType.CompVar, 1),
-        [SlotKeyName.Haircut] = new SlotKey(SlotType.CompVar, 2),
-        [SlotKeyName.Shirt] = new SlotKey(SlotType.CompVar, 3),
-        [SlotKeyName.Pants] = new SlotKey(SlotType.CompVar, 4),
-        [SlotKeyName.Hands] = new SlotKey(SlotType.CompVar, 5),
-        [SlotKeyName.Shoes] = new SlotKey(SlotType.CompVar, 6),
-        [SlotKeyName.Eyes] = new SlotKey(SlotType.CompVar, 7),
-        [SlotKeyName.Accessories] = new SlotKey(SlotType.CompVar, 8),
-        [SlotKeyName.Items] = new SlotKey(SlotType.CompVar, 9),
-        [SlotKeyName.Decals] = new SlotKey(SlotType.CompVar, 10),
-        [SlotKeyName.Collars] = new SlotKey(SlotType.CompVar, 11),
-        [SlotKeyName.Hats] = new SlotKey(SlotType.Prop, 0),
-        [SlotKeyName.Glasses] = new SlotKey(SlotType.Prop, 1),
-        [SlotKeyName.Earrings] = new SlotKey(SlotType.Prop, 2),
-        [SlotKeyName.Watches] = new SlotKey(SlotType.Prop, 6),
-        [SlotKeyName.Bangles] = new SlotKey(SlotType.Prop, 7),
-    };
-
-    public readonly Dictionary<SlotKeyName, SlotKey> mp_slots = new Dictionary<SlotKeyName, SlotKey>
-    {
-        [SlotKeyName.Face] = new SlotKey(SlotType.CompVar, 0),
-        [SlotKeyName.Mask] = new SlotKey(SlotType.CompVar, 1),
-        [SlotKeyName.Haircut] = new SlotKey(SlotType.CompVar, 2),
-        [SlotKeyName.Hands] = new SlotKey(SlotType.CompVar, 3),
-        [SlotKeyName.Pants] = new SlotKey(SlotType.CompVar, 4),
-        [SlotKeyName.Parachutes] = new SlotKey(SlotType.CompVar, 5),
-        [SlotKeyName.Shoes] = new SlotKey(SlotType.CompVar, 6),
-        [SlotKeyName.Accessories] = new SlotKey(SlotType.CompVar, 7),
-        [SlotKeyName.SubShirt] = new SlotKey(SlotType.CompVar, 8),
-        [SlotKeyName.Armour] = new SlotKey(SlotType.CompVar, 9),
-        [SlotKeyName.Decals] = new SlotKey(SlotType.CompVar, 10),
-        [SlotKeyName.Shirt] = new SlotKey(SlotType.CompVar, 11),
-        [SlotKeyName.Hats] = new SlotKey(SlotType.Prop, 0),
-        [SlotKeyName.Glasses] = new SlotKey(SlotType.Prop, 1),
-        [SlotKeyName.Earrings] = new SlotKey(SlotType.Prop, 2),
-        [SlotKeyName.Watches] = new SlotKey(SlotType.Prop, 6),
-        [SlotKeyName.Bangles] = new SlotKey(SlotType.Prop, 7),
-        [SlotKeyName.Blemishes] = new SlotKey(SlotType.HeadOverlay, 0),
-        [SlotKeyName.FacialHair] = new SlotKey(SlotType.HeadOverlay, 1),
-        [SlotKeyName.Eyebrows] = new SlotKey(SlotType.HeadOverlay, 2),
-        [SlotKeyName.Ageing] = new SlotKey(SlotType.HeadOverlay, 3),
-        [SlotKeyName.Makeup] = new SlotKey(SlotType.HeadOverlay, 4),
-        [SlotKeyName.Blush] = new SlotKey(SlotType.HeadOverlay, 5),
-        [SlotKeyName.Complexion] = new SlotKey(SlotType.HeadOverlay, 6),
-        [SlotKeyName.SunDamage] = new SlotKey(SlotType.HeadOverlay, 7),
-        [SlotKeyName.Lipstick] = new SlotKey(SlotType.HeadOverlay, 8),
-        [SlotKeyName.Moles] = new SlotKey(SlotType.HeadOverlay, 9),
-        [SlotKeyName.ChestHair] = new SlotKey(SlotType.HeadOverlay, 10),
-        [SlotKeyName.BodyBlemishes] = new SlotKey(SlotType.HeadOverlay, 11),
-        [SlotKeyName.AddBodyBlemishes] = new SlotKey(SlotType.HeadOverlay, 12),
-    };
-
     // map slot type and slot id to drawable, texture, and palette
     public PedData ped_data = new PedData();
 
@@ -403,7 +305,7 @@ public class ChangingRoom : Script
     {
         var submenu = AddSubMenu(menu, "Story Mode");
         AddStorymodeModelToMenu(submenu);
-        AddChangeOutfitToMenu(submenu, sp_slots);
+        AddStorymodeOutfitToMenu(submenu);
         AddClearOutfitToMenu(submenu);
     }
 
@@ -428,33 +330,66 @@ public class ChangingRoom : Script
         };
     }
 
-    public void AddChangeOutfitToMenu(UIMenu menu, Dictionary<SlotKeyName, SlotKey> slot_map)
+    public void AddStorymodeOutfitToMenu(UIMenu menu)
     {
-        var result = AddSubMenu2(menu, "Change Outfit");
-        var outfititem = result.Item1;
-        var outfitmenu = result.Item2;
-        var slotitems = new List<Tuple<SlotKeyName, UIMenuItem>>();
-        foreach (SlotKeyName slot in Enum.GetValues(typeof(SlotKeyName)))
-            if (slot_map.ContainsKey(slot))
-            {
-                var subitem = AddSlotToMenu(outfitmenu, slot.ToString(), slot_map[slot]);
-                slotitems.Add(Tuple.Create(slot, subitem));
-            }
-        menu.OnItemSelect += (sender, item, index) =>
-        {
-            // enable only if there are any items to change
-            if (item == outfititem)
-            {
-                foreach (var slotitem in slotitems)
-                {
-                    var slot_key_name = slotitem.Item1;
-                    var subitem = slotitem.Item2;
-                    var slot_key = slot_map[slot_key_name];
-                    var ped = Game.Player.Character;
-                    subitem.Enabled = (PedData.GetNumIndex1(ped, slot_key) >= 2) || (PedData.GetNumIndex2(ped, slot_key, 0) >= 2);
-                }
-            }
-        };
+        var outfitmenu = AddSubMenu(menu, "Change Outfit");
+        var headmenu = AddSubMenu(outfitmenu, "Head");
+        var bodymenu = AddSubMenu(outfitmenu, "Body");
+        AddSlotToMenu(headmenu, "Face", new SlotKey(SlotType.CompVar, 0));
+        AddSlotToMenu(headmenu, "Eyes", new SlotKey(SlotType.CompVar, 7));
+        AddSlotToMenu(headmenu, "Haircut", new SlotKey(SlotType.CompVar, 2));
+        AddSlotToMenu(headmenu, "Beard", new SlotKey(SlotType.CompVar, 1));
+        AddSlotToMenu(headmenu, "Hat", new SlotKey(SlotType.Prop, 0));
+        AddSlotToMenu(headmenu, "Glasses", new SlotKey(SlotType.Prop, 1));
+        AddSlotToMenu(headmenu, "Earrings", new SlotKey(SlotType.Prop, 2));
+        AddSlotToMenu(bodymenu, "Hands", new SlotKey(SlotType.CompVar, 5));
+        AddSlotToMenu(bodymenu, "Shirt", new SlotKey(SlotType.CompVar, 3));
+        AddSlotToMenu(bodymenu, "Pants", new SlotKey(SlotType.CompVar, 4));
+        AddSlotToMenu(bodymenu, "Shoes", new SlotKey(SlotType.CompVar, 6));
+        AddSlotToMenu(bodymenu, "Watch", new SlotKey(SlotType.Prop, 6));
+        AddSlotToMenu(bodymenu, "Bangle", new SlotKey(SlotType.Prop, 7));
+        AddSlotToMenu(bodymenu, "Accessory", new SlotKey(SlotType.CompVar, 8));
+        AddSlotToMenu(bodymenu, "Item", new SlotKey(SlotType.CompVar, 9));
+        AddSlotToMenu(bodymenu, "Decal", new SlotKey(SlotType.CompVar, 10));
+        AddSlotToMenu(bodymenu, "Collar", new SlotKey(SlotType.CompVar, 11));
+    }
+
+    public void AddFreemodeOutfitToMenu(UIMenu menu)
+    {
+        var outfitmenu = AddSubMenu(menu, "Change Outfit");
+        var headmenu = AddSubMenu(outfitmenu, "Head");
+        var bodymenu = AddSubMenu(outfitmenu, "Body");
+        // we use parent blend to change face
+        //AddSlotToMenu(headmenu, "Face", new SlotKey(SlotType.CompVar, 0));
+        AddSlotToMenu(headmenu, "Haircut", new SlotKey(SlotType.CompVar, 2));
+        AddSlotToMenu(headmenu, "Eyebrows", new SlotKey(SlotType.HeadOverlay, 2));
+        AddSlotToMenu(headmenu, "Beard", new SlotKey(SlotType.HeadOverlay, 1));
+        AddSlotToMenu(headmenu, "Makeup", new SlotKey(SlotType.HeadOverlay, 4));
+        AddSlotToMenu(headmenu, "Blush", new SlotKey(SlotType.HeadOverlay, 5));
+        AddSlotToMenu(headmenu, "Lipstick", new SlotKey(SlotType.HeadOverlay, 8));
+        AddSlotToMenu(headmenu, "Hat", new SlotKey(SlotType.Prop, 0));
+        AddSlotToMenu(headmenu, "Mask", new SlotKey(SlotType.CompVar, 1));
+        AddSlotToMenu(headmenu, "Glasses", new SlotKey(SlotType.Prop, 1));
+        AddSlotToMenu(headmenu, "Earrings", new SlotKey(SlotType.Prop, 2));
+        AddSlotToMenu(headmenu, "Blemishes", new SlotKey(SlotType.HeadOverlay, 0));
+        AddSlotToMenu(headmenu, "Ageing", new SlotKey(SlotType.HeadOverlay, 3));
+        AddSlotToMenu(headmenu, "Complexion", new SlotKey(SlotType.HeadOverlay, 6));
+        AddSlotToMenu(headmenu, "Sun Damage", new SlotKey(SlotType.HeadOverlay, 7));
+        AddSlotToMenu(headmenu, "Moles", new SlotKey(SlotType.HeadOverlay, 9));
+        AddSlotToMenu(bodymenu, "Hands", new SlotKey(SlotType.CompVar, 3));
+        AddSlotToMenu(bodymenu, "Shirt", new SlotKey(SlotType.CompVar, 11));
+        AddSlotToMenu(bodymenu, "Extra Shirt", new SlotKey(SlotType.CompVar, 8));
+        AddSlotToMenu(bodymenu, "Chest Hair", new SlotKey(SlotType.HeadOverlay, 10));
+        AddSlotToMenu(bodymenu, "Pants", new SlotKey(SlotType.CompVar, 4));
+        AddSlotToMenu(bodymenu, "Shoes", new SlotKey(SlotType.CompVar, 6));
+        AddSlotToMenu(bodymenu, "Watch", new SlotKey(SlotType.Prop, 6));
+        AddSlotToMenu(bodymenu, "Bangle", new SlotKey(SlotType.Prop, 7));
+        AddSlotToMenu(bodymenu, "Parachute", new SlotKey(SlotType.CompVar, 5));
+        AddSlotToMenu(bodymenu, "Armour", new SlotKey(SlotType.CompVar, 9));
+        AddSlotToMenu(bodymenu, "Accessory", new SlotKey(SlotType.CompVar, 7));
+        AddSlotToMenu(bodymenu, "Decal", new SlotKey(SlotType.CompVar, 10));
+        AddSlotToMenu(bodymenu, "Body Blemishes", new SlotKey(SlotType.HeadOverlay, 11));
+        AddSlotToMenu(bodymenu, "Add Body Blemishes", new SlotKey(SlotType.HeadOverlay, 12));
     }
 
     public UIMenuItem AddSlotToMenu(UIMenu menu, string text, SlotKey slot_key)
@@ -468,12 +403,23 @@ public class ChangingRoom : Script
         submenu.AddItem(listitem1);
         submenu.AddItem(listitem2);
         submenu.AddItem(clearitem);
+        menu.ParentMenu.OnItemSelect += (sender, item, index) =>
+        {
+            // if menu is selected, then enable those subitems
+            // where there is something to change
+            if (item == menu.ParentItem)
+            {
+                var ped = Game.Player.Character;
+                subitem.Enabled = (PedData.GetNumIndex1(ped, slot_key) >= 2) || (PedData.GetNumIndex2(ped, slot_key, 0) >= 2);
+            }
+        };
         menu.OnItemSelect += (sender, item, index) =>
         {
+            // if subitem is selected,
+            // display correct indices for model and texture
+            // and enable item if there's anything to change
             if (item == subitem)
             {
-                // display correct indices for model and texture
-                // and enable item if there's anything to change
                 var ped = Game.Player.Character;
                 var slot_value = ped_data.GetSlotValue(slot_key);
                 listitem1.Index = slot_value.index1;
@@ -539,7 +485,7 @@ public class ChangingRoom : Script
     {
         var submenu = AddSubMenu(menu, "Free Mode");
         AddFreemodeModelToMenu(submenu);
-        AddChangeOutfitToMenu(submenu, mp_slots);
+        AddFreemodeOutfitToMenu(submenu);
         AddClearOutfitToMenu(submenu);
     }
 
