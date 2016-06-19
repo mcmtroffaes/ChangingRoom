@@ -428,23 +428,23 @@ public class ChangingRoom : Script
         var result = AddSubMenu2(menu, "Change Outfit");
         var outfititem = result.Item1;
         var outfitmenu = result.Item2;
-        var componentitems = new List<Tuple<SlotKeyName, UIMenuItem>>();
+        var slotitems = new List<Tuple<SlotKeyName, UIMenuItem>>();
         foreach (SlotKeyName slot in Enum.GetValues(typeof(SlotKeyName)))
             if (slot_map.ContainsKey(slot))
             {
-                var subitem = AddComponentToMenu(outfitmenu, slot.ToString(), slot_map[slot]);
-                componentitems.Add(Tuple.Create(slot, subitem));
+                var subitem = AddSlotToMenu(outfitmenu, slot.ToString(), slot_map[slot]);
+                slotitems.Add(Tuple.Create(slot, subitem));
             }
         menu.OnItemSelect += (sender, item, index) =>
         {
             // enable only if there are any items to change
             if (item == outfititem)
             {
-                foreach (var componentitem in componentitems)
+                foreach (var slotitem in slotitems)
                 {
-                    var component = componentitem.Item1;
-                    var subitem = componentitem.Item2;
-                    var slot_key = slot_map[component];
+                    var slot_key_name = slotitem.Item1;
+                    var subitem = slotitem.Item2;
+                    var slot_key = slot_map[slot_key_name];
                     var ped = Game.Player.Character;
                     subitem.Enabled = (ped_data.GetNumIndex1(ped, slot_key) >= 2) || (ped_data.GetNumIndex2(ped, slot_key, 0) >= 2);
                 }
@@ -452,7 +452,7 @@ public class ChangingRoom : Script
         };
     }
 
-    public UIMenuItem AddComponentToMenu(UIMenu menu, string text, SlotKey slot_key)
+    public UIMenuItem AddSlotToMenu(UIMenu menu, string text, SlotKey slot_key)
     {
         var result = AddSubMenu2(menu, text);
         var subitem = result.Item1;
@@ -495,12 +495,12 @@ public class ChangingRoom : Script
                     index = (index == UI_LIST_MAX - 1) ? maxid : 0;
                     item.Index = index;
                 }
-                var newNumIndex2 = numIndex2;  // new textureNum after changing drawableId (if changed)
+                var newNumIndex2 = numIndex2;  // new numIndex2 after changing index1 (if changed)
                 if (item == listitem1)
                 {
                     slot_value.index1 = index;
                     newNumIndex2 = ped_data.GetNumIndex2(ped, slot_key, slot_value.index1);
-                    // correct current texture id if it is out of range
+                    // correct current index2 if it is out of range
                     // we pick the nearest integer
                     if (slot_value.index2 >= newNumIndex2) slot_value.index2 = newNumIndex2 - 1;
                     // update listitem2 index and enabled flag
@@ -570,7 +570,6 @@ public class ChangingRoom : Script
             if (item == clearitem)
             {
                 var ped = Game.Player.Character;
-                // components
                 var slots = IsPedFreemode(ped) ? mp_slots : sp_slots;
                 foreach (var slot_key in slots.Values)
                     ped_data.ClearSlotValue(ped, slot_key);
