@@ -283,17 +283,12 @@ public class ChangingRoom : Script
 
     public UIMenu AddSubMenu(UIMenu menu, string name)
     {
-        return AddSubMenu2(menu, name).Item2;
-    }
-
-    public Tuple<UIMenuItem, UIMenu> AddSubMenu2(UIMenu menu, string name)
-    {
         var item = new UIMenuItem(name);
         menu.AddItem(item);
         var submenu = new UIMenu(menu.Title.Caption, name);
         menuPool.Add(submenu);
         menu.BindMenuToItem(submenu, item);
-        return Tuple.Create(item, submenu);
+        return submenu;
     }
 
     public void RefreshIndex()
@@ -356,69 +351,69 @@ public class ChangingRoom : Script
 
     public void AddFreemodeOutfitToMenu(UIMenu menu)
     {
-        var outfitmenu = AddSubMenu(menu, "Change Outfit");
-        var headmenu = AddSubMenu(outfitmenu, "Head");
-        var bodymenu = AddSubMenu(outfitmenu, "Body");
+        var outfitmenu = AddSubMenu(menu, "Appearance");
+        var charmenu = AddSubMenu(outfitmenu, "Character");
+        var barbmenu = AddSubMenu(outfitmenu, "Barber");
+        var clo1menu = AddSubMenu(outfitmenu, "Clothing");
+        var clo2menu = AddSubMenu(outfitmenu, "Clothing Extra");
         // we use parent blend to change face
-        //AddSlotToMenu(headmenu, "Face", new SlotKey(SlotType.CompVar, 0));
-        AddSlotToMenu(headmenu, "Haircut", new SlotKey(SlotType.CompVar, 2));
-        AddSlotToMenu(headmenu, "Eyebrows", new SlotKey(SlotType.HeadOverlay, 2));
-        AddSlotToMenu(headmenu, "Beard", new SlotKey(SlotType.HeadOverlay, 1));
-        AddSlotToMenu(headmenu, "Makeup", new SlotKey(SlotType.HeadOverlay, 4));
-        AddSlotToMenu(headmenu, "Blush", new SlotKey(SlotType.HeadOverlay, 5));
-        AddSlotToMenu(headmenu, "Lipstick", new SlotKey(SlotType.HeadOverlay, 8));
-        AddSlotToMenu(headmenu, "Hat", new SlotKey(SlotType.Prop, 0));
-        AddSlotToMenu(headmenu, "Mask", new SlotKey(SlotType.CompVar, 1));
-        AddSlotToMenu(headmenu, "Glasses", new SlotKey(SlotType.Prop, 1));
-        AddSlotToMenu(headmenu, "Earrings", new SlotKey(SlotType.Prop, 2));
-        AddSlotToMenu(headmenu, "Blemishes", new SlotKey(SlotType.HeadOverlay, 0));
-        AddSlotToMenu(headmenu, "Ageing", new SlotKey(SlotType.HeadOverlay, 3));
-        AddSlotToMenu(headmenu, "Complexion", new SlotKey(SlotType.HeadOverlay, 6));
-        AddSlotToMenu(headmenu, "Sun Damage", new SlotKey(SlotType.HeadOverlay, 7));
-        AddSlotToMenu(headmenu, "Moles", new SlotKey(SlotType.HeadOverlay, 9));
-        AddSlotToMenu(bodymenu, "Hands", new SlotKey(SlotType.CompVar, 3));
-        AddSlotToMenu(bodymenu, "Shirt", new SlotKey(SlotType.CompVar, 11));
-        AddSlotToMenu(bodymenu, "Extra Shirt", new SlotKey(SlotType.CompVar, 8));
-        AddSlotToMenu(bodymenu, "Chest Hair", new SlotKey(SlotType.HeadOverlay, 10));
-        AddSlotToMenu(bodymenu, "Pants", new SlotKey(SlotType.CompVar, 4));
-        AddSlotToMenu(bodymenu, "Shoes", new SlotKey(SlotType.CompVar, 6));
-        AddSlotToMenu(bodymenu, "Watch", new SlotKey(SlotType.Prop, 6));
-        AddSlotToMenu(bodymenu, "Bangle", new SlotKey(SlotType.Prop, 7));
-        AddSlotToMenu(bodymenu, "Parachute", new SlotKey(SlotType.CompVar, 5));
-        AddSlotToMenu(bodymenu, "Armour", new SlotKey(SlotType.CompVar, 9));
-        AddSlotToMenu(bodymenu, "Accessory", new SlotKey(SlotType.CompVar, 7));
-        AddSlotToMenu(bodymenu, "Decal", new SlotKey(SlotType.CompVar, 10));
-        AddSlotToMenu(bodymenu, "Body Blemishes", new SlotKey(SlotType.HeadOverlay, 11));
-        AddSlotToMenu(bodymenu, "Add Body Blemishes", new SlotKey(SlotType.HeadOverlay, 12));
+        //AddSlotToMenu(charmenu, "Face", new SlotKey(SlotType.CompVar, 0));
+        AddSlotToMenu(barbmenu, "Haircut", new SlotKey(SlotType.CompVar, 2));
+        AddSlotToMenu(barbmenu, "Eyebrows", new SlotKey(SlotType.HeadOverlay, 2));
+        AddSlotToMenu(barbmenu, "Beard", new SlotKey(SlotType.HeadOverlay, 1));
+        AddSlotToMenu(barbmenu, "Makeup", new SlotKey(SlotType.HeadOverlay, 4));
+        AddSlotToMenu(barbmenu, "Blush", new SlotKey(SlotType.HeadOverlay, 5));
+        AddSlotToMenu(barbmenu, "Lipstick", new SlotKey(SlotType.HeadOverlay, 8));
+        AddSlotToMenu(barbmenu, "Chest Hair", new SlotKey(SlotType.HeadOverlay, 10));
+        AddSlotToMenu(charmenu, "Blemishes", new SlotKey(SlotType.HeadOverlay, 0));
+        AddSlotToMenu(charmenu, "Ageing", new SlotKey(SlotType.HeadOverlay, 3));
+        AddSlotToMenu(charmenu, "Complexion", new SlotKey(SlotType.HeadOverlay, 6));
+        AddSlotToMenu(charmenu, "Sun Damage", new SlotKey(SlotType.HeadOverlay, 7));
+        AddSlotToMenu(charmenu, "Moles", new SlotKey(SlotType.HeadOverlay, 9));
+        AddSlotToMenu(charmenu, "Body Blemishes", new SlotKey(SlotType.HeadOverlay, 11));
+        AddSlotToMenu(charmenu, "Add Body Blemishes", new SlotKey(SlotType.HeadOverlay, 12));
+        AddSlotToMenu(clo1menu, "Hands", new SlotKey(SlotType.CompVar, 3));
+        AddSlotToMenu(clo1menu, "Shirt", new SlotKey(SlotType.CompVar, 11));
+        AddSlotToMenu(clo1menu, "Extra Shirt", new SlotKey(SlotType.CompVar, 8));
+        AddSlotToMenu(clo1menu, "Pants", new SlotKey(SlotType.CompVar, 4));
+        AddSlotToMenu(clo1menu, "Shoes", new SlotKey(SlotType.CompVar, 6));
+        AddSlotToMenu(clo2menu, "Hat", new SlotKey(SlotType.Prop, 0));
+        AddSlotToMenu(clo2menu, "Mask", new SlotKey(SlotType.CompVar, 1));
+        AddSlotToMenu(clo2menu, "Glasses", new SlotKey(SlotType.Prop, 1));
+        AddSlotToMenu(clo2menu, "Earrings", new SlotKey(SlotType.Prop, 2));
+        AddSlotToMenu(clo2menu, "Watch", new SlotKey(SlotType.Prop, 6));
+        AddSlotToMenu(clo2menu, "Bangle", new SlotKey(SlotType.Prop, 7));
+        AddSlotToMenu(clo2menu, "Parachute", new SlotKey(SlotType.CompVar, 5));
+        AddSlotToMenu(clo2menu, "Armour", new SlotKey(SlotType.CompVar, 9));
+        AddSlotToMenu(clo2menu, "Accessory", new SlotKey(SlotType.CompVar, 7));
+        AddSlotToMenu(clo2menu, "Decal", new SlotKey(SlotType.CompVar, 10));
     }
 
-    public UIMenuItem AddSlotToMenu(UIMenu menu, string text, SlotKey slot_key)
+    public void AddSlotToMenu(UIMenu menu, string text, SlotKey slot_key)
     {
-        var result = AddSubMenu2(menu, text);
-        var subitem = result.Item1;
-        var submenu = result.Item2;
+        var submenu = AddSubMenu(menu, text);
         var listitem1 = new UIMenuListItem("Model", UI_LIST, 0);
         var listitem2 = new UIMenuListItem("Texture", UI_LIST, 0);
         var clearitem = new UIMenuItem("Clear");
         submenu.AddItem(listitem1);
         submenu.AddItem(listitem2);
         submenu.AddItem(clearitem);
+        // when the menu is selected, we only want submenu to be
+        // enabled if its model and/or texture can be changed
         menu.ParentMenu.OnItemSelect += (sender, item, index) =>
         {
-            // if menu is selected, then enable those subitems
-            // where there is something to change
             if (item == menu.ParentItem)
             {
                 var ped = Game.Player.Character;
-                subitem.Enabled = (PedData.GetNumIndex1(ped, slot_key) >= 2) || (PedData.GetNumIndex2(ped, slot_key, 0) >= 2);
+                submenu.ParentItem.Enabled = (PedData.GetNumIndex1(ped, slot_key) >= 2) || (PedData.GetNumIndex2(ped, slot_key, 0) >= 2);
             }
         };
-        menu.OnItemSelect += (sender, item, index) =>
+        // when submenu is selected, display correct indices for model and texture
+        // and enable those entries of this submenu
+        // (model, texture, ...) where something can be changed
+        submenu.ParentMenu.OnItemSelect += (sender, item, index) =>
         {
-            // if subitem is selected,
-            // display correct indices for model and texture
-            // and enable item if there's anything to change
-            if (item == subitem)
+            if (item == submenu.ParentItem)
             {
                 var ped = Game.Player.Character;
                 var slot_value = ped_data.GetSlotValue(slot_key);
@@ -478,7 +473,6 @@ public class ChangingRoom : Script
                 listitem2.Enabled = (PedData.GetNumIndex2(ped, slot_key, slot_value.index1) >= 2);
             }
         };
-        return subitem;
     }
 
     public void AddFreemodeToMenu(UIMenu menu)
