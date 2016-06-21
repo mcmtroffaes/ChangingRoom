@@ -254,7 +254,7 @@ public class PedData
         SetSlotValue(ped, slot_key, slot_value);
     }
 
-    public void UndressSlot(Ped ped, SlotKey slot_key)
+    public void FreemodeUndressSlot(Ped ped, SlotKey slot_key)
     {
         var slot_value = new SlotValue(0, 0, 0);
         if (slot_key.typ == SlotType.CompVar)
@@ -269,7 +269,7 @@ public class PedData
     }
 
     // Undress but keep all head overlays. Returns dictionary that can be used to redress.
-    public Dictionary<SlotKey, SlotValue> Undress(Ped ped)
+    public Dictionary<SlotKey, SlotValue> FreemodeUndress(Ped ped)
     {
         var old_data = new Dictionary<SlotKey, SlotValue>();
         old_data.Clear();
@@ -279,12 +279,12 @@ public class PedData
             {
                 var slot_key = new SlotKey(slot_type, slot_id);
                 old_data[slot_key] = GetSlotValue(slot_key);
-                UndressSlot(ped, slot_key);
+                FreemodeUndressSlot(ped, slot_key);
             }
         return old_data;
     }
 
-    public void Redress(Ped ped, Dictionary<SlotKey, SlotValue> old_data)
+    public void FreemodeRedress(Ped ped, Dictionary<SlotKey, SlotValue> old_data)
     {
         foreach (var slot_item in old_data)
             SetSlotValue(ped, slot_item.Key, slot_item.Value);
@@ -436,21 +436,21 @@ public class ChangingRoom : Script
         AddSlotToMenu(clo2menu, "Parachute", new SlotKey(SlotType.CompVar, 5));
         AddSlotToMenu(clo2menu, "Armour", new SlotKey(SlotType.CompVar, 9));
         AddSlotToMenu(clo2menu, "Decal", new SlotKey(SlotType.CompVar, 10));
-        // undress character when Character menu is selected
-        // redress character when the menu is left
+        // undress character when Character menu is openend
         var old_data = new Dictionary<SlotKey, SlotValue>();
         charmenu.ParentMenu.OnItemSelect += (sender, item, index) =>
         {
             if (item == charmenu.ParentItem)
             {
                 var ped = Game.Player.Character;
-                old_data = ped_data.Undress(ped);
+                old_data = ped_data.FreemodeUndress(ped);
             }
         };
+        // redress character when the menu is closed
         charmenu.OnMenuClose += (sender) =>
         {
             var ped = Game.Player.Character;
-            ped_data.Redress(ped, old_data);
+            ped_data.FreemodeRedress(ped, old_data);
             old_data.Clear();
         };
     }
