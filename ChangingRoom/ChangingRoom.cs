@@ -118,6 +118,16 @@ public class PedData
         0, 0, 0, 8, 13, 0, 12, 0, 14, 0, 0, 82
     };
 
+    private readonly int[] mp_male_undress_drawable =
+    {
+        0, 0, 0, 15, 61, 0, 34, 0, 15, 0, 0, 15
+    };
+
+    private readonly int[] mp_female_undress_drawable =
+    {
+        0, 0, 0, 15, 15, 0, 35, 0, 2, 0, 0, 82
+    };
+
     public SlotValue GetSlotValue(SlotKey slot)
     {
         if (data.ContainsKey(slot))
@@ -230,7 +240,7 @@ public class PedData
             data[slot_key] = slot_value;
     }
 
-    public void ClearSlotValue(Ped ped, SlotKey slot_key)
+    public void ClearSlot(Ped ped, SlotKey slot_key)
     {
         var slot_value = new SlotValue(0, 0, 0);
         if (slot_key.typ == SlotType.CompVar)
@@ -243,6 +253,43 @@ public class PedData
         }
         SetSlotValue(ped, slot_key, slot_value);
     }
+
+    public void UndressSlot(Ped ped, SlotKey slot_key)
+    {
+        var slot_value = new SlotValue(0, 0, 0);
+        if (slot_key.typ == SlotType.CompVar)
+        {
+            var hash = (PedHash)ped.Model.Hash;
+            if (hash == PedHash.FreemodeMale01)
+                slot_value.index1 = mp_male_undress_drawable[slot_key.id];
+            else if (hash == PedHash.FreemodeFemale01)
+                slot_value.index1 = mp_female_undress_drawable[slot_key.id];
+        }
+        SetSlotValue(ped, slot_key, slot_value);
+    }
+
+    // Undress but keep all head overlays. Returns dictionary that can be used to redress.
+    public Dictionary<SlotKey, SlotValue> Undress(Ped ped)
+    {
+        var old_data = new Dictionary<SlotKey, SlotValue>();
+        old_data.Clear();
+        SlotType[] typs = { SlotType.CompVar, SlotType.Prop };
+        foreach (SlotType slot_type in typs)
+            for (int slot_id = 0; slot_id < PedData.GetNumId(slot_type); slot_id++)
+            {
+                var slot_key = new SlotKey(slot_type, slot_id);
+                old_data[slot_key] = GetSlotValue(slot_key);
+                UndressSlot(ped, slot_key);
+            }
+        return old_data;
+    }
+
+    public void Redress(Ped ped, Dictionary<SlotKey, SlotValue> old_data)
+    {
+        foreach (var slot_item in old_data)
+            SetSlotValue(ped, slot_item.Key, slot_item.Value);
+    }
+
 
     public void ChangePlayerModel(PedHash hash)
     {
@@ -301,7 +348,7 @@ public class ChangingRoom : Script
         var submenu = AddSubMenu(menu, "Story Mode");
         AddStorymodeModelToMenu(submenu);
         AddStorymodeAppearanceToMenu(submenu);
-        AddClearOutfitToMenu(submenu);
+        AddClearAppearanceToMenu(submenu);
     }
 
     public void AddStorymodeModelToMenu(UIMenu menu)
@@ -389,6 +436,23 @@ public class ChangingRoom : Script
         AddSlotToMenu(clo2menu, "Parachute", new SlotKey(SlotType.CompVar, 5));
         AddSlotToMenu(clo2menu, "Armour", new SlotKey(SlotType.CompVar, 9));
         AddSlotToMenu(clo2menu, "Decal", new SlotKey(SlotType.CompVar, 10));
+        // undress character when Character menu is selected
+        // redress character when the menu is left
+        var old_data = new Dictionary<SlotKey, SlotValue>();
+        charmenu.ParentMenu.OnItemSelect += (sender, item, index) =>
+        {
+            if (item == charmenu.ParentItem)
+            {
+                var ped = Game.Player.Character;
+                old_data = ped_data.Undress(ped);
+            }
+        };
+        charmenu.OnMenuClose += (sender) =>
+        {
+            var ped = Game.Player.Character;
+            ped_data.Redress(ped, old_data);
+            old_data.Clear();
+        };
     }
 
     public void AddSlotToMenu(UIMenu menu, string text, SlotKey slot_key)
@@ -467,7 +531,7 @@ public class ChangingRoom : Script
             if (item == clearitem)
             {
                 var ped = Game.Player.Character;
-                ped_data.ClearSlotValue(ped, slot_key);
+                ped_data.ClearSlot(ped, slot_key);
                 // update menu items
                 var slot_value = ped_data.GetSlotValue(slot_key);
                 listitem1.Index = slot_value.index1;
@@ -482,7 +546,7 @@ public class ChangingRoom : Script
         var submenu = AddSubMenu(menu, "Free Mode");
         AddFreemodeModelToMenu(submenu);
         AddFreemodeAppearanceToMenu(submenu);
-        AddClearOutfitToMenu(submenu);
+        AddClearAppearanceToMenu(submenu);
     }
 
     public void AddFreemodeModelToMenu(UIMenu menu)
@@ -506,9 +570,9 @@ public class ChangingRoom : Script
         return hash == PedHash.FreemodeMale01 || hash == PedHash.FreemodeFemale01;
     }
 
-    public void AddClearOutfitToMenu(UIMenu menu)
+    public void AddClearAppearanceToMenu(UIMenu menu)
     {
-        var clearitem = new UIMenuItem("Clear Outfit");
+        var clearitem = new UIMenuItem("Clear Appearance");
         menu.AddItem(clearitem);
         menu.OnItemSelect += (sender, item, index) =>
         {
@@ -519,7 +583,7 @@ public class ChangingRoom : Script
                     for (int slot_id=0; slot_id < PedData.GetNumId(slot_type); slot_id++)
                     {
                         var slot_key = new SlotKey(slot_type, slot_id);
-                        ped_data.ClearSlotValue(ped, slot_key);
+                        ped_data.ClearSlot(ped, slot_key);
                     }
             }
         };
