@@ -300,7 +300,7 @@ public class ChangingRoom : Script
     {
         var submenu = AddSubMenu(menu, "Story Mode");
         AddStorymodeModelToMenu(submenu);
-        AddStorymodeOutfitToMenu(submenu);
+        AddStorymodeAppearanceToMenu(submenu);
         AddClearOutfitToMenu(submenu);
     }
 
@@ -325,42 +325,44 @@ public class ChangingRoom : Script
         };
     }
 
-    public void AddStorymodeOutfitToMenu(UIMenu menu)
+    public void AddStorymodeAppearanceToMenu(UIMenu menu)
     {
-        var outfitmenu = AddSubMenu(menu, "Change Outfit");
-        var headmenu = AddSubMenu(outfitmenu, "Head");
-        var bodymenu = AddSubMenu(outfitmenu, "Body");
-        AddSlotToMenu(headmenu, "Face", new SlotKey(SlotType.CompVar, 0));
-        AddSlotToMenu(headmenu, "Eyes", new SlotKey(SlotType.CompVar, 7));
-        AddSlotToMenu(headmenu, "Haircut", new SlotKey(SlotType.CompVar, 2));
-        AddSlotToMenu(headmenu, "Beard", new SlotKey(SlotType.CompVar, 1));
-        AddSlotToMenu(headmenu, "Hat", new SlotKey(SlotType.Prop, 0));
-        AddSlotToMenu(headmenu, "Glasses", new SlotKey(SlotType.Prop, 1));
-        AddSlotToMenu(headmenu, "Earrings", new SlotKey(SlotType.Prop, 2));
-        AddSlotToMenu(bodymenu, "Hands", new SlotKey(SlotType.CompVar, 5));
-        AddSlotToMenu(bodymenu, "Shirt", new SlotKey(SlotType.CompVar, 3));
-        AddSlotToMenu(bodymenu, "Pants", new SlotKey(SlotType.CompVar, 4));
-        AddSlotToMenu(bodymenu, "Shoes", new SlotKey(SlotType.CompVar, 6));
-        AddSlotToMenu(bodymenu, "Watch", new SlotKey(SlotType.Prop, 6));
-        AddSlotToMenu(bodymenu, "Bangle", new SlotKey(SlotType.Prop, 7));
-        AddSlotToMenu(bodymenu, "Accessory", new SlotKey(SlotType.CompVar, 8));
-        AddSlotToMenu(bodymenu, "Item", new SlotKey(SlotType.CompVar, 9));
-        AddSlotToMenu(bodymenu, "Decal", new SlotKey(SlotType.CompVar, 10));
-        AddSlotToMenu(bodymenu, "Collar", new SlotKey(SlotType.CompVar, 11));
+        var topmenu = AddSubMenu(menu, "Appearance");
+        var charmenu = AddSubMenu(topmenu, "Character");
+        var barbmenu = AddSubMenu(topmenu, "Barber");
+        var clo1menu = AddSubMenu(topmenu, "Clothing");
+        var clo2menu = AddSubMenu(topmenu, "Clothing Extra");
+        AddSlotToMenu(charmenu, "Face", new SlotKey(SlotType.CompVar, 0));
+        AddSlotToMenu(charmenu, "Eyes", new SlotKey(SlotType.CompVar, 7));
+        AddSlotToMenu(barbmenu, "Haircut", new SlotKey(SlotType.CompVar, 2));
+        AddSlotToMenu(barbmenu, "Beard", new SlotKey(SlotType.CompVar, 1));
+        AddSlotToMenu(clo1menu, "Hands", new SlotKey(SlotType.CompVar, 5));
+        AddSlotToMenu(clo1menu, "Shirt", new SlotKey(SlotType.CompVar, 3));
+        AddSlotToMenu(clo1menu, "Pants", new SlotKey(SlotType.CompVar, 4));
+        AddSlotToMenu(clo1menu, "Shoes", new SlotKey(SlotType.CompVar, 6));
+        AddSlotToMenu(clo2menu, "Hat", new SlotKey(SlotType.Prop, 0));
+        AddSlotToMenu(clo2menu, "Glasses", new SlotKey(SlotType.Prop, 1));
+        AddSlotToMenu(clo2menu, "Earrings", new SlotKey(SlotType.Prop, 2));
+        AddSlotToMenu(clo2menu, "Watch", new SlotKey(SlotType.Prop, 6));
+        AddSlotToMenu(clo2menu, "Bangle", new SlotKey(SlotType.Prop, 7));
+        AddSlotToMenu(clo2menu, "Accessory", new SlotKey(SlotType.CompVar, 8));
+        AddSlotToMenu(clo2menu, "Item", new SlotKey(SlotType.CompVar, 9));
+        AddSlotToMenu(clo2menu, "Decal", new SlotKey(SlotType.CompVar, 10));
+        AddSlotToMenu(clo2menu, "Collar", new SlotKey(SlotType.CompVar, 11));
     }
 
-    public void AddFreemodeOutfitToMenu(UIMenu menu)
+    public void AddFreemodeAppearanceToMenu(UIMenu menu)
     {
-        var outfitmenu = AddSubMenu(menu, "Appearance");
-        var charmenu = AddSubMenu(outfitmenu, "Character");
-        var barbmenu = AddSubMenu(outfitmenu, "Barber");
-        var clo1menu = AddSubMenu(outfitmenu, "Clothing");
-        var clo2menu = AddSubMenu(outfitmenu, "Clothing Extra");
+        var topmenu = AddSubMenu(menu, "Appearance");
+        var charmenu = AddSubMenu(topmenu, "Character");
+        var barbmenu = AddSubMenu(topmenu, "Barber");
+        var clo1menu = AddSubMenu(topmenu, "Clothing");
+        var clo2menu = AddSubMenu(topmenu, "Clothing Extra");
         // we use parent blend to change face
         //AddSlotToMenu(charmenu, "Face", new SlotKey(SlotType.CompVar, 0));
         AddSlotToMenu(barbmenu, "Haircut", new SlotKey(SlotType.CompVar, 2));
-        AddSlotToMenu(barbmenu, "Eyebrows", new SlotKey(SlotType.HeadOverlay, 2));
         AddSlotToMenu(barbmenu, "Beard", new SlotKey(SlotType.HeadOverlay, 1));
+        AddSlotToMenu(barbmenu, "Eyebrows", new SlotKey(SlotType.HeadOverlay, 2));
         AddSlotToMenu(barbmenu, "Makeup", new SlotKey(SlotType.HeadOverlay, 4));
         AddSlotToMenu(barbmenu, "Blush", new SlotKey(SlotType.HeadOverlay, 5));
         AddSlotToMenu(barbmenu, "Lipstick", new SlotKey(SlotType.HeadOverlay, 8));
@@ -381,11 +383,11 @@ public class ChangingRoom : Script
         AddSlotToMenu(clo2menu, "Mask", new SlotKey(SlotType.CompVar, 1));
         AddSlotToMenu(clo2menu, "Glasses", new SlotKey(SlotType.Prop, 1));
         AddSlotToMenu(clo2menu, "Earrings", new SlotKey(SlotType.Prop, 2));
+        AddSlotToMenu(clo2menu, "Tie & Scarf", new SlotKey(SlotType.CompVar, 7));
         AddSlotToMenu(clo2menu, "Watch", new SlotKey(SlotType.Prop, 6));
         AddSlotToMenu(clo2menu, "Bangle", new SlotKey(SlotType.Prop, 7));
         AddSlotToMenu(clo2menu, "Parachute", new SlotKey(SlotType.CompVar, 5));
         AddSlotToMenu(clo2menu, "Armour", new SlotKey(SlotType.CompVar, 9));
-        AddSlotToMenu(clo2menu, "Accessory", new SlotKey(SlotType.CompVar, 7));
         AddSlotToMenu(clo2menu, "Decal", new SlotKey(SlotType.CompVar, 10));
     }
 
@@ -479,7 +481,7 @@ public class ChangingRoom : Script
     {
         var submenu = AddSubMenu(menu, "Free Mode");
         AddFreemodeModelToMenu(submenu);
-        AddFreemodeOutfitToMenu(submenu);
+        AddFreemodeAppearanceToMenu(submenu);
         AddClearOutfitToMenu(submenu);
     }
 
