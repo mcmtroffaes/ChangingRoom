@@ -63,13 +63,14 @@ public struct SlotKey
 
 public struct SlotValue
 {
-    public int index1, index2, index3;
+    public int index1, index2, index3, index4;
 
-    public SlotValue(int i1, int i2, int i3)
+    public SlotValue(int i1, int i2, int i3, int i4)
     {
         index1 = i1;
         index2 = i2;
         index3 = i3;
+        index4 = i4;
     }
 
     public SlotValue(XmlTextReader reader)
@@ -77,6 +78,7 @@ public struct SlotValue
         index1 = int.Parse(reader.GetAttribute("index1"));
         index2 = int.Parse(reader.GetAttribute("index2"));
         index3 = int.Parse(reader.GetAttribute("index3"));
+        index4 = int.Parse(reader.GetAttribute("index4"));
     }
 
     public void WriteXml(XmlWriter writer)
@@ -84,6 +86,7 @@ public struct SlotValue
         writer.WriteAttributeString("index1", index1.ToString());
         writer.WriteAttributeString("index2", index2.ToString());
         writer.WriteAttributeString("index3", index3.ToString());
+        writer.WriteAttributeString("index4", index4.ToString());
     }
 }
 
@@ -151,7 +154,7 @@ public class PedData
         if (data.ContainsKey(slot))
             return data[slot];
         else
-            return new SlotValue(0, 0, 0);
+            return new SlotValue(0, 0, 0, 0);
     }
 
     public static int GetNumId(SlotType typ)
@@ -169,10 +172,10 @@ public class PedData
     {
         switch (typ)
         {
-            case SlotType.CompVar: return new string[] { "Model", "Texture", "Color" };
-            case SlotType.Prop: return new string[] { "Model", "Texture", "Color" };
-            case SlotType.HeadOverlay: return new string[] { "Model", "Opacity", "Color" };
-            default: return new string[] { "Model", "Texture", "Color" };
+            case SlotType.CompVar: return new string[] { "Model", "Texture", "Color", "Highlight Color" };
+            case SlotType.Prop: return new string[] { "Model", "Texture", "Color", "Highlight Color" };
+            case SlotType.HeadOverlay: return new string[] { "Model", "Opacity", "Color", "Highlight Color" };
+            default: return new string[] { "Model", "Texture", "Color", "Highlight Color" };
         }
     }
 
@@ -265,6 +268,21 @@ public class PedData
         return 1;
     }
 
+    public int GetNumIndex4(Ped ped, SlotKey key)
+    {
+        var slot_value = GetSlotValue(key);
+        return GetNumIndex4(ped, key, slot_value.index1, slot_value.index2, slot_value.index3);
+    }
+
+    public static int GetNumIndex4(Ped ped, SlotKey key, int index1, int index2, int index3)
+    {
+        // hair: highlight color
+        if (key.typ == SlotType.CompVar && key.id == 2)
+            return Function.Call<int>(Hash._GET_NUM_HAIR_COLORS);
+        else
+            return 1;
+    }
+
     public void SetSlotValue(Ped ped, SlotKey slot_key, SlotValue slot_value)
     {
         switch (slot_key.typ)
@@ -274,8 +292,8 @@ public class PedData
                     Hash.SET_PED_COMPONENT_VARIATION,
                     ped.Handle,
                     slot_key.id, slot_value.index1, slot_value.index2, 0);
-                if (slot_key.id == 2) // hair
-                    Function.Call(Hash._SET_PED_HAIR_COLOR, ped.Handle, slot_value.index3, slot_value.index3);
+                if (slot_key.id == 2) // hair: use index3 and index4
+                    Function.Call(Hash._SET_PED_HAIR_COLOR, ped.Handle, slot_value.index3, slot_value.index4);
                 break;
             case SlotType.Prop:
                 if (slot_value.index1 == 0)
@@ -290,7 +308,8 @@ public class PedData
                 {
                     // index2 is opacity
                     Function.Call(Hash.SET_PED_HEAD_OVERLAY, ped.Handle, slot_key.id, slot_value.index1 - 1, (8 - slot_value.index2) / 8.0f);
-                    // index3 is color
+                    // takes color (index3) and highlight color (index4), but the latter is ignored
+                    // so use index3 for both colors just in case
                     var color_type = mp_head_overlay_color_type[slot_key.id];
                     switch (color_type)
                     {
@@ -307,7 +326,7 @@ public class PedData
                 Function.Call(Hash._SET_PED_EYE_COLOR, ped.Handle, slot_value.index1);
                 break;
         }
-        if (slot_value.index1 == 0 && slot_value.index2 == 0 && slot_value.index3 == 0)
+        if (slot_value.index1 == 0 && slot_value.index2 == 0 && slot_value.index3 == 0 && slot_value.index4 == 0)
             data.Remove(slot_key);
         else
             data[slot_key] = slot_value;
@@ -315,7 +334,7 @@ public class PedData
 
     public void ClearSlot(Ped ped, SlotKey slot_key)
     {
-        var slot_value = new SlotValue(0, 0, 0);
+        var slot_value = new SlotValue(0, 0, 0, 0);
         if (slot_key.typ == SlotType.CompVar)
         {
             var hash = (PedHash)ped.Model.Hash;
@@ -329,7 +348,7 @@ public class PedData
 
     public void FreemodeUndressSlot(Ped ped, SlotKey slot_key)
     {
-        var slot_value = new SlotValue(0, 0, 0);
+        var slot_value = new SlotValue(0, 0, 0, 0);
         if (slot_key.typ == SlotType.CompVar)
         {
             var hash = (PedHash)ped.Model.Hash;
@@ -536,10 +555,12 @@ public class ChangingRoom : Script
         var listitem1 = new UIMenuListItem(index_names[0], UI_LIST, 0);
         var listitem2 = new UIMenuListItem(index_names[1], UI_LIST, 0);
         var listitem3 = new UIMenuListItem(index_names[2], UI_LIST, 0);
+        var listitem4 = new UIMenuListItem(index_names[3], UI_LIST, 0);
         var clearitem = new UIMenuItem("Clear");
         submenu.AddItem(listitem1);
         submenu.AddItem(listitem2);
         submenu.AddItem(listitem3);
+        submenu.AddItem(listitem4);
         submenu.AddItem(clearitem);
         // when the menu is selected, we only want submenu to be
         // enabled if its model and/or texture can be changed
@@ -548,7 +569,11 @@ public class ChangingRoom : Script
             if (item == menu.ParentItem)
             {
                 var ped = Game.Player.Character;
-                submenu.ParentItem.Enabled = (PedData.GetNumIndex1(ped, slot_key) >= 2) || (PedData.GetNumIndex2(ped, slot_key, 0) >= 2) || (PedData.GetNumIndex3(ped, slot_key, 0, 0) >= 2);
+                submenu.ParentItem.Enabled = (
+                    (PedData.GetNumIndex1(ped, slot_key) >= 2) ||
+                    (PedData.GetNumIndex2(ped, slot_key, 0) >= 2) ||
+                    (PedData.GetNumIndex3(ped, slot_key, 0, 0) >= 2) ||
+                    (PedData.GetNumIndex4(ped, slot_key, 0, 0, 0) >= 2));
             }
         };
         // when submenu is selected, display correct indices for model and texture
@@ -566,25 +591,30 @@ public class ChangingRoom : Script
                 listitem2.Enabled = (ped_data.GetNumIndex2(ped, slot_key) >= 2);
                 listitem3.Index = slot_value.index3;
                 listitem3.Enabled = (ped_data.GetNumIndex3(ped, slot_key) >= 2);
+                listitem4.Index = slot_value.index4;
+                listitem4.Enabled = (ped_data.GetNumIndex4(ped, slot_key) >= 2);
             }
         };
         submenu.OnListChange += (sender, item, index) =>
         {
-            if (item == listitem1 || item == listitem2 || item == listitem3)
+            if (item == listitem1 || item == listitem2 || item == listitem3 || item == listitem4)
             {
                 var ped = Game.Player.Character;
                 var slot_value = ped_data.GetSlotValue(slot_key);
                 var numIndex1 = PedData.GetNumIndex1(ped, slot_key);
                 var numIndex2 = ped_data.GetNumIndex2(ped, slot_key);
                 var numIndex3 = ped_data.GetNumIndex3(ped, slot_key);
+                var numIndex4 = ped_data.GetNumIndex4(ped, slot_key);
                 // we need to ensure that the new id is valid as the menu has more items than number of ids supported by the game
                 int maxid;
                 if (item == listitem1)
                     maxid = numIndex1;
                 else if (item == listitem2)
                     maxid = numIndex2;
-                else
+                else if (item == listitem3)
                     maxid = numIndex3;
+                else // if (item == listitem4)
+                    maxid = numIndex4;
                 maxid = Math.Min(maxid - 1, UI_LIST_MAX);
                 System.Diagnostics.Debug.Assert(maxid >= 0);
                 System.Diagnostics.Debug.Assert(maxid <= UI_LIST_MAX - 1);
@@ -598,8 +628,10 @@ public class ChangingRoom : Script
                     slot_value.index1 = index;
                 else if (item == listitem2)
                     slot_value.index2 = index;
-                else // if (item == listitem3)
+                else if (item == listitem3)
                     slot_value.index3 = index;
+                else // if (item == listitem4)
+                    slot_value.index4 = index;
                 // correct listitem2 if index2 is out of range
                 var newNumIndex2 = PedData.GetNumIndex2(ped, slot_key, slot_value.index1);
                 if (slot_value.index2 >= newNumIndex2) slot_value.index2 = newNumIndex2 - 1;
@@ -610,6 +642,12 @@ public class ChangingRoom : Script
                 if (slot_value.index3 >= newNumIndex3) slot_value.index3 = newNumIndex3 - 1;
                 listitem3.Index = slot_value.index3;
                 listitem3.Enabled = (newNumIndex3 >= 2);
+                // correct listitem3 if index3 is out of range
+                var newNumIndex4 = PedData.GetNumIndex4(ped, slot_key, slot_value.index1, slot_value.index2, slot_value.index3);
+                if (slot_value.index4 >= newNumIndex4) slot_value.index4 = newNumIndex4 - 1;
+                listitem4.Index = slot_value.index4;
+                listitem4.Enabled = (newNumIndex4 >= 2);
+                // set slot value
                 ped_data.SetSlotValue(ped, slot_key, slot_value);
             }
         };
@@ -624,9 +662,11 @@ public class ChangingRoom : Script
                 listitem1.Index = slot_value.index1;
                 listitem2.Index = slot_value.index2;
                 listitem3.Index = slot_value.index3;
+                listitem4.Index = slot_value.index4;
                 listitem1.Enabled = (PedData.GetNumIndex1(ped, slot_key) >= 2);
                 listitem2.Enabled = (ped_data.GetNumIndex2(ped, slot_key) >= 2);
                 listitem3.Enabled = (ped_data.GetNumIndex3(ped, slot_key) >= 2);
+                listitem4.Enabled = (ped_data.GetNumIndex4(ped, slot_key) >= 2);
             }
         };
     }
