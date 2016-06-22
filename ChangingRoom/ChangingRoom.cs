@@ -35,6 +35,7 @@ public enum SlotType
     Prop,
     HeadOverlay,
     Eye,
+    Parent,
 }
 
 public struct SlotKey
@@ -175,6 +176,7 @@ public class PedData
             case SlotType.CompVar: return new string[] { "Model", "Texture", "Color", "Highlight Color" };
             case SlotType.Prop: return new string[] { "Model", "Texture", "Color", "Highlight Color" };
             case SlotType.HeadOverlay: return new string[] { "Model", "Opacity", "Color", "Highlight Color" };
+            case SlotType.Parent: return new string[] { "Shape", "Skin", "Shape Mix", "Skin Mix" };
             default: return new string[] { "Model", "Texture", "Color", "Highlight Color" };
         }
     }
@@ -197,6 +199,13 @@ public class PedData
             case SlotType.Eye:
                 // TODO: hardcoded for now; how to get this from native?
                 return 32;
+            case SlotType.Parent:
+                return (
+                    Function.Call<int>(Hash._GET_NUM_PARENT_PEDS_OF_TYPE, 0) +
+                    Function.Call<int>(Hash._GET_NUM_PARENT_PEDS_OF_TYPE, 1) +
+                    Function.Call<int>(Hash._GET_NUM_PARENT_PEDS_OF_TYPE, 2) +
+                    Function.Call<int>(Hash._GET_NUM_PARENT_PEDS_OF_TYPE, 3)
+                    );
             default:
                 return 1;
         }
@@ -236,6 +245,13 @@ public class PedData
                 else
                     // opacity: 0 -> 1.0, 7 -> 0.125, in steps of 0.125
                     return 7;
+            case SlotType.Parent:
+                return (
+                    Function.Call<int>(Hash._GET_NUM_PARENT_PEDS_OF_TYPE, 0) +
+                    Function.Call<int>(Hash._GET_NUM_PARENT_PEDS_OF_TYPE, 1) +
+                    Function.Call<int>(Hash._GET_NUM_PARENT_PEDS_OF_TYPE, 2) +
+                    Function.Call<int>(Hash._GET_NUM_PARENT_PEDS_OF_TYPE, 3)
+                    );
             default:
                 return 1;
         }
@@ -265,6 +281,10 @@ public class PedData
                     return Function.Call<int>(Hash._0xD1F7CA1535D22818);
             }
         }
+        else if (key.typ == SlotType.Parent && (key.id == 0 || key.id == 2))
+            return 9; // shape mix for par1 and par3 going from 0 to 8
+        else
+            return 1;
         return 1;
     }
 
@@ -279,12 +299,20 @@ public class PedData
         // hair: highlight color
         if (key.typ == SlotType.CompVar && key.id == 2)
             return Function.Call<int>(Hash._GET_NUM_HAIR_COLORS);
+        else if (key.typ == SlotType.Parent && key.id == 0)
+            return 9; // skin mix for par1 going from 0 to 8
         else
             return 1;
     }
 
     public void SetSlotValue(Ped ped, SlotKey slot_key, SlotValue slot_value)
     {
+        // store it
+        if (slot_value.index1 == 0 && slot_value.index2 == 0 && slot_value.index3 == 0 && slot_value.index4 == 0)
+            data.Remove(slot_key);
+        else
+            data[slot_key] = slot_value;
+        // change game state accordingly
         switch (slot_key.typ)
         {
             case SlotType.CompVar:
@@ -325,11 +353,25 @@ public class PedData
             case SlotType.Eye:
                 Function.Call(Hash._SET_PED_EYE_COLOR, ped.Handle, slot_value.index1);
                 break;
+            case SlotType.Parent:
+                // get current parent info
+                var par1 = GetSlotValue(new SlotKey(SlotType.Parent, 0));
+                var par2 = GetSlotValue(new SlotKey(SlotType.Parent, 1));
+                var par3 = GetSlotValue(new SlotKey(SlotType.Parent, 2));
+                var shape1 = par1.index1;
+                var shape2 = par2.index1;
+                var shape3 = par3.index1;
+                var skin1 = par1.index2;
+                var skin2 = par2.index2;
+                var skin3 = par3.index2;
+                float shapemix = par1.index3 / 8.0f;
+                float skinmix = par1.index4 / 8.0f;
+                float thirdmix = par3.index3 / 8.0f;
+                Function.Call(
+                    Hash.SET_PED_HEAD_BLEND_DATA, ped.Handle,
+                    shape1, shape2, shape3, skin1, skin2, skin3, shapemix, skinmix, thirdmix);
+                break;
         }
-        if (slot_value.index1 == 0 && slot_value.index2 == 0 && slot_value.index3 == 0 && slot_value.index4 == 0)
-            data.Remove(slot_key);
-        else
-            data[slot_key] = slot_value;
     }
 
     public void ClearSlot(Ped ped, SlotKey slot_key)
@@ -369,6 +411,7 @@ public class PedData
         foreach (SlotType slot_type in typs)
             for (int slot_id = 0; slot_id < PedData.GetNumId(slot_type); slot_id++)
             {
+                if (slot_id == 2) continue; // don't "undress" hair
                 var slot_key = new SlotKey(slot_type, slot_id);
                 old_data[slot_key] = GetSlotValue(slot_key);
                 FreemodeUndressSlot(ped, slot_key);
@@ -507,6 +550,9 @@ public class ChangingRoom : Script
         AddSlotToMenu(barbmenu, "Lipstick", new SlotKey(SlotType.HeadOverlay, 8));
         AddSlotToMenu(barbmenu, "Chest Hair", new SlotKey(SlotType.HeadOverlay, 10));
         AddSlotToMenu(barbmenu, "Eyes", new SlotKey(SlotType.Eye, 0));
+        AddSlotToMenu(charmenu, "Parent 1", new SlotKey(SlotType.Parent, 0));
+        AddSlotToMenu(charmenu, "Parent 2", new SlotKey(SlotType.Parent, 1));
+        AddSlotToMenu(charmenu, "Parent 3", new SlotKey(SlotType.Parent, 2));
         AddSlotToMenu(charmenu, "Blemishes", new SlotKey(SlotType.HeadOverlay, 0));
         AddSlotToMenu(charmenu, "Ageing", new SlotKey(SlotType.HeadOverlay, 3));
         AddSlotToMenu(charmenu, "Complexion", new SlotKey(SlotType.HeadOverlay, 6));
@@ -529,11 +575,11 @@ public class ChangingRoom : Script
         AddSlotToMenu(clo2menu, "Parachute", new SlotKey(SlotType.CompVar, 5));
         AddSlotToMenu(clo2menu, "Armour", new SlotKey(SlotType.CompVar, 9));
         AddSlotToMenu(clo2menu, "Decal", new SlotKey(SlotType.CompVar, 10));
-        // undress character when Character menu is openend
+        // undress character when Character or Barber menus are openend
         var old_data = new Dictionary<SlotKey, SlotValue>();
         charmenu.ParentMenu.OnItemSelect += (sender, item, index) =>
         {
-            if (item == charmenu.ParentItem)
+            if (item == charmenu.ParentItem || item == barbmenu.ParentItem)
             {
                 var ped = Game.Player.Character;
                 old_data = ped_data.FreemodeUndress(ped);
@@ -541,6 +587,12 @@ public class ChangingRoom : Script
         };
         // redress character when the menu is closed
         charmenu.OnMenuClose += (sender) =>
+        {
+            var ped = Game.Player.Character;
+            ped_data.FreemodeRedress(ped, old_data);
+            old_data.Clear();
+        };
+        barbmenu.OnMenuClose += (sender) =>
         {
             var ped = Game.Player.Character;
             ped_data.FreemodeRedress(ped, old_data);
