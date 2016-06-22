@@ -34,6 +34,7 @@ public enum SlotType
     CompVar,
     Prop,
     HeadOverlay,
+    Eye,
 }
 
 public struct SlotKey
@@ -180,6 +181,9 @@ public class PedData
                 // no overlay = extra overlay in this script
                 return Math.Max(1, Function.Call<int>(
                     Hash._GET_NUM_HEAD_OVERLAY_VALUES, key.id) + 1);
+            case SlotType.Eye:
+                // TODO: hardcoded for now; how to get this from native?
+                return 31;
             default:
                 return 1;
         }
@@ -288,6 +292,9 @@ public class PedData
                             break;
                     }
                 }
+                break;
+            case SlotType.Eye:
+                Function.Call(Hash._SET_PED_EYE_COLOR, ped.Handle, slot_value.index1);
                 break;
         }
         if (slot_value.index1 == 0 && slot_value.index2 == 0 && slot_value.index3 == 0)
@@ -470,6 +477,7 @@ public class ChangingRoom : Script
         AddSlotToMenu(barbmenu, "Blush", new SlotKey(SlotType.HeadOverlay, 5));
         AddSlotToMenu(barbmenu, "Lipstick", new SlotKey(SlotType.HeadOverlay, 8));
         AddSlotToMenu(barbmenu, "Chest Hair", new SlotKey(SlotType.HeadOverlay, 10));
+        AddSlotToMenu(barbmenu, "Eyes", new SlotKey(SlotType.Eye, 0));
         AddSlotToMenu(charmenu, "Blemishes", new SlotKey(SlotType.HeadOverlay, 0));
         AddSlotToMenu(charmenu, "Ageing", new SlotKey(SlotType.HeadOverlay, 3));
         AddSlotToMenu(charmenu, "Complexion", new SlotKey(SlotType.HeadOverlay, 6));
