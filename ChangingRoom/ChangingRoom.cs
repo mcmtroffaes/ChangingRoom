@@ -165,6 +165,17 @@ public class PedData
         }
     }
 
+    public static string[] GetIndexNames(SlotType typ)
+    {
+        switch (typ)
+        {
+            case SlotType.CompVar: return new string[] { "Model", "Texture", "Color" };
+            case SlotType.Prop: return new string[] { "Model", "Texture", "Color" };
+            case SlotType.HeadOverlay: return new string[] { "Model", "Opacity", "Color" };
+            default: return new string[] { "Model", "Texture", "Color" };
+        }
+    }
+
     public static int GetNumIndex1(Ped ped, SlotKey key)
     {
         switch (key.typ)
@@ -521,9 +532,10 @@ public class ChangingRoom : Script
     public void AddSlotToMenu(UIMenu menu, string text, SlotKey slot_key)
     {
         var submenu = AddSubMenu(menu, text);
-        var listitem1 = new UIMenuListItem("Model", UI_LIST, 0);
-        var listitem2 = new UIMenuListItem("Texture", UI_LIST, 0);
-        var listitem3 = new UIMenuListItem("Color", UI_LIST, 0);
+        var index_names = PedData.GetIndexNames(slot_key.typ);
+        var listitem1 = new UIMenuListItem(index_names[0], UI_LIST, 0);
+        var listitem2 = new UIMenuListItem(index_names[1], UI_LIST, 0);
+        var listitem3 = new UIMenuListItem(index_names[2], UI_LIST, 0);
         var clearitem = new UIMenuItem("Clear");
         submenu.AddItem(listitem1);
         submenu.AddItem(listitem2);
