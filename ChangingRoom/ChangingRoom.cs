@@ -455,6 +455,7 @@ public class PedData
 
 public class ChangingRoom : Script
 {
+    private Random rnd = new Random();
     static int UI_LIST_MAX = 256;
     static List<dynamic> UI_LIST = Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList();
     private readonly Dictionary<string, PedHash> _pedhash;
@@ -550,6 +551,10 @@ public class ChangingRoom : Script
         AddSlotToMenu(barbmenu, "Lipstick", new SlotKey(SlotType.HeadOverlay, 8));
         AddSlotToMenu(barbmenu, "Chest Hair", new SlotKey(SlotType.HeadOverlay, 10));
         AddSlotToMenu(barbmenu, "Eyes", new SlotKey(SlotType.Eye, 0));
+        var randshapeitem = new UIMenuItem("Random Shape");
+        var randskinitem = new UIMenuItem("Random Skin");
+        charmenu.AddItem(randshapeitem);
+        charmenu.AddItem(randskinitem);
         AddSlotToMenu(charmenu, "Parent 1", new SlotKey(SlotType.Parent, 0));
         AddSlotToMenu(charmenu, "Parent 2", new SlotKey(SlotType.Parent, 1));
         AddSlotToMenu(charmenu, "Parent 3", new SlotKey(SlotType.Parent, 2));
@@ -597,6 +602,39 @@ public class ChangingRoom : Script
             var ped = Game.Player.Character;
             ped_data.FreemodeRedress(ped, old_data);
             old_data.Clear();
+        };
+        // random stuff
+        charmenu.OnItemSelect += (sender, item, index) =>
+        {
+            if (item == randshapeitem || item == randskinitem)
+            {
+                var ped = Game.Player.Character;
+                var key1 = new SlotKey(SlotType.Parent, 0);
+                var key2 = new SlotKey(SlotType.Parent, 1);
+                var key3 = new SlotKey(SlotType.Parent, 2);
+                var par1 = ped_data.GetSlotValue(key1);
+                var par2 = ped_data.GetSlotValue(key2);
+                var par3 = ped_data.GetSlotValue(key3);
+                if (item == randshapeitem)
+                {
+                    par1.index1 = rnd.Next(PedData.GetNumIndex1(ped, key1));
+                    par1.index3 = rnd.Next(PedData.GetNumIndex3(ped, key1, par1.index1, par1.index2));
+                    par2.index1 = rnd.Next(PedData.GetNumIndex1(ped, key2));
+                }
+                else
+                {
+                    par1.index2 = rnd.Next(PedData.GetNumIndex2(ped, key1, par1.index1));
+                    par1.index4 = rnd.Next(PedData.GetNumIndex4(ped, key1, par1.index1, par1.index2, par1.index3));
+                    par2.index2 = rnd.Next(PedData.GetNumIndex2(ped, key2, par2.index1));
+                }
+                par3.index1 = 0;
+                par3.index2 = 0;
+                par3.index3 = 0;
+                par3.index4 = 0;
+                ped_data.SetSlotValue(ped, key1, par1);
+                ped_data.SetSlotValue(ped, key2, par2);
+                ped_data.SetSlotValue(ped, key3, par3);
+            }
         };
     }
 
