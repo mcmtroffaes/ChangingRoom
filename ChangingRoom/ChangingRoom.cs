@@ -128,6 +128,30 @@ public class PedData
         0, 0, 0, 15, 15, 0, 35, 0, 2, 0, 0, 82
     };
 
+    private enum ColorType
+    {
+        None,
+        Hair,
+        Makeup,
+    };
+
+    private readonly static ColorType[] mp_head_overlay_color_type =
+    {
+        ColorType.None,
+        ColorType.Hair, // 1 = facial hair
+        ColorType.Hair, // 2 = eyebrows
+        ColorType.None,
+        ColorType.None,
+        ColorType.Makeup, // 5 = cheek blush
+        ColorType.None,
+        ColorType.None,
+        ColorType.Makeup, // 8 = lipstick
+        ColorType.None,
+        ColorType.Hair, // 10 = chest hair
+        ColorType.None,
+        ColorType.None,
+    };
+
     public SlotValue GetSlotValue(SlotKey slot)
     {
         if (data.ContainsKey(slot))
@@ -208,6 +232,22 @@ public class PedData
 
     public static int GetNumIndex3(Ped ped, SlotKey key, int index1, int index2)
     {
+        if (key.typ == SlotType.CompVar && key.id == 2) // hair
+        {
+            return Function.Call<int>(Hash._GET_NUM_HAIR_COLORS);
+        }
+        else if (key.typ == SlotType.HeadOverlay && index1 >= 1)
+        {
+            ColorType color_type = mp_head_overlay_color_type[key.id];
+            switch (color_type)
+            {
+                case ColorType.Hair:
+                    return Function.Call<int>(Hash._GET_NUM_HAIR_COLORS);
+                case ColorType.Makeup:
+                    // _GET_NUM_MAKEUP_COLORS
+                    return Function.Call<int>(Hash._0xD1F7CA1535D22818);
+            }
+        }
         return 1;
     }
 
@@ -219,7 +259,9 @@ public class PedData
                 Function.Call(
                     Hash.SET_PED_COMPONENT_VARIATION,
                     ped.Handle,
-                    slot_key.id, slot_value.index1, slot_value.index2, slot_value.index3);
+                    slot_key.id, slot_value.index1, slot_value.index2, 0);
+                if (slot_key.id == 2) // hair
+                    Function.Call(Hash._SET_PED_HAIR_COLOR, ped.Handle, slot_value.index3, slot_value.index3);
                 break;
             case SlotType.Prop:
                 if (slot_value.index1 == 0)
@@ -231,7 +273,21 @@ public class PedData
                 if (slot_value.index1 == 0)
                     Function.Call(Hash.SET_PED_HEAD_OVERLAY, ped.Handle, slot_key.id, 0, 0.0f);
                 else
+                {
+                    // index2 is opacity
                     Function.Call(Hash.SET_PED_HEAD_OVERLAY, ped.Handle, slot_key.id, slot_value.index1 - 1, (8 - slot_value.index2) / 8.0f);
+                    // index3 is color
+                    var color_type = mp_head_overlay_color_type[slot_key.id];
+                    switch (color_type)
+                    {
+                        case ColorType.Hair:
+                            Function.Call(Hash._SET_PED_HEAD_OVERLAY_COLOR, ped.Handle, slot_key.id, 1, slot_value.index3, slot_value.index3);
+                            break;
+                        case ColorType.Makeup:
+                            Function.Call(Hash._SET_PED_HEAD_OVERLAY_COLOR, ped.Handle, slot_key.id, 2, slot_value.index3, slot_value.index3);
+                            break;
+                    }
+                }
                 break;
         }
         if (slot_value.index1 == 0 && slot_value.index2 == 0 && slot_value.index3 == 0)
@@ -460,9 +516,11 @@ public class ChangingRoom : Script
         var submenu = AddSubMenu(menu, text);
         var listitem1 = new UIMenuListItem("Model", UI_LIST, 0);
         var listitem2 = new UIMenuListItem("Texture", UI_LIST, 0);
+        var listitem3 = new UIMenuListItem("Color", UI_LIST, 0);
         var clearitem = new UIMenuItem("Clear");
         submenu.AddItem(listitem1);
         submenu.AddItem(listitem2);
+        submenu.AddItem(listitem3);
         submenu.AddItem(clearitem);
         // when the menu is selected, we only want submenu to be
         // enabled if its model and/or texture can be changed
@@ -471,7 +529,7 @@ public class ChangingRoom : Script
             if (item == menu.ParentItem)
             {
                 var ped = Game.Player.Character;
-                submenu.ParentItem.Enabled = (PedData.GetNumIndex1(ped, slot_key) >= 2) || (PedData.GetNumIndex2(ped, slot_key, 0) >= 2);
+                submenu.ParentItem.Enabled = (PedData.GetNumIndex1(ped, slot_key) >= 2) || (PedData.GetNumIndex2(ped, slot_key, 0) >= 2) || (PedData.GetNumIndex3(ped, slot_key, 0, 0) >= 2);
             }
         };
         // when submenu is selected, display correct indices for model and texture
@@ -487,18 +545,28 @@ public class ChangingRoom : Script
                 listitem1.Enabled = (PedData.GetNumIndex1(ped, slot_key) >= 2);
                 listitem2.Index = slot_value.index2;
                 listitem2.Enabled = (ped_data.GetNumIndex2(ped, slot_key) >= 2);
+                listitem3.Index = slot_value.index3;
+                listitem3.Enabled = (ped_data.GetNumIndex3(ped, slot_key) >= 2);
             }
         };
         submenu.OnListChange += (sender, item, index) =>
         {
-            if (item == listitem1 || item == listitem2)
+            if (item == listitem1 || item == listitem2 || item == listitem3)
             {
                 var ped = Game.Player.Character;
                 var slot_value = ped_data.GetSlotValue(slot_key);
                 var numIndex1 = PedData.GetNumIndex1(ped, slot_key);
                 var numIndex2 = ped_data.GetNumIndex2(ped, slot_key);
+                var numIndex3 = ped_data.GetNumIndex3(ped, slot_key);
                 // we need to ensure that the new id is valid as the menu has more items than number of ids supported by the game
-                var maxid = Math.Min(UI_LIST_MAX, ((item == listitem1) ? numIndex1 : numIndex2)) - 1;
+                int maxid;
+                if (item == listitem1)
+                    maxid = numIndex1;
+                else if (item == listitem2)
+                    maxid = numIndex2;
+                else
+                    maxid = numIndex3;
+                maxid = Math.Min(maxid - 1, UI_LIST_MAX);
                 System.Diagnostics.Debug.Assert(maxid >= 0);
                 System.Diagnostics.Debug.Assert(maxid <= UI_LIST_MAX - 1);
                 if (index > maxid)
@@ -508,6 +576,7 @@ public class ChangingRoom : Script
                     item.Index = index;
                 }
                 var newNumIndex2 = numIndex2;  // new numIndex2 after changing index1 (if changed)
+                var newNumIndex3 = numIndex3;  // new numIndex3 after changing index1 or index2 (if changed)
                 if (item == listitem1)
                 {
                     slot_value.index1 = index;
@@ -518,10 +587,28 @@ public class ChangingRoom : Script
                     // update listitem2 index and enabled flag
                     listitem2.Index = slot_value.index2;
                     listitem2.Enabled = (newNumIndex2 >= 2);
+                    newNumIndex3 = PedData.GetNumIndex3(ped, slot_key, slot_value.index1, slot_value.index2);
+                    // correct current index3 if it is out of range
+                    // we pick the nearest integer
+                    if (slot_value.index3 >= newNumIndex3) slot_value.index3 = newNumIndex3 - 1;
+                    // update listitem2 index and enabled flag
+                    listitem3.Index = slot_value.index3;
+                    listitem3.Enabled = (newNumIndex3 >= 2);
                 }
-                else
+                else if (item == listitem2)
                 {
                     slot_value.index2 = index;
+                    newNumIndex3 = PedData.GetNumIndex3(ped, slot_key, slot_value.index1, slot_value.index2);
+                    // correct current index3 if it is out of range
+                    // we pick the nearest integer
+                    if (slot_value.index3 >= newNumIndex3) slot_value.index3 = newNumIndex3 - 1;
+                    // update listitem2 index and enabled flag
+                    listitem3.Index = slot_value.index3;
+                    listitem3.Enabled = (newNumIndex3 >= 2);
+                }
+                else // if (item == listitem3)
+                {
+                    slot_value.index3 = index;
                 }
                 ped_data.SetSlotValue(ped, slot_key, slot_value);
             }
@@ -536,7 +623,10 @@ public class ChangingRoom : Script
                 var slot_value = ped_data.GetSlotValue(slot_key);
                 listitem1.Index = slot_value.index1;
                 listitem2.Index = slot_value.index2;
-                listitem2.Enabled = (PedData.GetNumIndex2(ped, slot_key, slot_value.index1) >= 2);
+                listitem3.Index = slot_value.index3;
+                listitem1.Enabled = (PedData.GetNumIndex1(ped, slot_key) >= 2);
+                listitem2.Enabled = (ped_data.GetNumIndex2(ped, slot_key) >= 2);
+                listitem3.Enabled = (ped_data.GetNumIndex3(ped, slot_key) >= 2);
             }
         };
     }
