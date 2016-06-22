@@ -89,14 +89,6 @@ public struct SlotValue
 
 public class PedData
 {
-    private static readonly Dictionary<SlotType, int> slot_type_num_id = new Dictionary<SlotType, int>
-    {
-        [SlotType.CompVar] = 12,
-        [SlotType.Prop] = 8,
-        [SlotType.HeadOverlay] = 13,
-        [SlotType.Eye] = 1,
-    };
-
     private Dictionary<SlotKey, SlotValue> data = new Dictionary<SlotKey, SlotValue>();
 
     public void WriteXml(XmlWriter writer)
@@ -110,22 +102,22 @@ public class PedData
         }
     }
 
-    private readonly int[] mp_male_clear_drawable =
+    private readonly static int[] mp_male_clear_drawable =
     {
         0, 0, 0, 3, 11, 0, 13, 0, 15, 0, 0, 15
     };
 
-    private readonly int[] mp_female_clear_drawable =
+    private readonly static int[] mp_female_clear_drawable =
     {
         0, 0, 0, 8, 13, 0, 12, 0, 14, 0, 0, 82
     };
 
-    private readonly int[] mp_male_undress_drawable =
+    private readonly static int[] mp_male_undress_drawable =
     {
         0, 0, 0, 15, 61, 0, 34, 0, 15, 0, 0, 15
     };
 
-    private readonly int[] mp_female_undress_drawable =
+    private readonly static int[] mp_female_undress_drawable =
     {
         0, 0, 0, 15, 15, 0, 35, 0, 2, 0, 0, 82
     };
@@ -164,7 +156,13 @@ public class PedData
 
     public static int GetNumId(SlotType typ)
     {
-        return slot_type_num_id[typ];
+        switch (typ)
+        {
+            case SlotType.CompVar: return 12;
+            case SlotType.Prop: return 8;
+            case SlotType.HeadOverlay: return 13;
+            default: return 1;
+        }
     }
 
     public static int GetNumIndex1(Ped ped, SlotKey key)
