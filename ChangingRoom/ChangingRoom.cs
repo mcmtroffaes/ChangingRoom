@@ -123,7 +123,7 @@ public class PedData
 
     private readonly static int[] mp_female_undress_drawable =
     {
-        0, 0, 0, 15, 15, 0, 35, 0, 2, 0, 0, 82
+        0, 0, 0, 15, 15, 0, 35, 0, 2, 0, 0, 15
     };
 
     private enum ColorType
