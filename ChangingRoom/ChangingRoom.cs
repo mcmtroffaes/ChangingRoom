@@ -582,41 +582,22 @@ public class ChangingRoom : Script
                     index = (index == UI_LIST_MAX - 1) ? maxid : 0;
                     item.Index = index;
                 }
-                var newNumIndex2 = numIndex2;  // new numIndex2 after changing index1 (if changed)
-                var newNumIndex3 = numIndex3;  // new numIndex3 after changing index1 or index2 (if changed)
                 if (item == listitem1)
-                {
                     slot_value.index1 = index;
-                    newNumIndex2 = PedData.GetNumIndex2(ped, slot_key, slot_value.index1);
-                    // correct current index2 if it is out of range
-                    // we pick the nearest integer
-                    if (slot_value.index2 >= newNumIndex2) slot_value.index2 = newNumIndex2 - 1;
-                    // update listitem2 index and enabled flag
-                    listitem2.Index = slot_value.index2;
-                    listitem2.Enabled = (newNumIndex2 >= 2);
-                    newNumIndex3 = PedData.GetNumIndex3(ped, slot_key, slot_value.index1, slot_value.index2);
-                    // correct current index3 if it is out of range
-                    // we pick the nearest integer
-                    if (slot_value.index3 >= newNumIndex3) slot_value.index3 = newNumIndex3 - 1;
-                    // update listitem2 index and enabled flag
-                    listitem3.Index = slot_value.index3;
-                    listitem3.Enabled = (newNumIndex3 >= 2);
-                }
                 else if (item == listitem2)
-                {
                     slot_value.index2 = index;
-                    newNumIndex3 = PedData.GetNumIndex3(ped, slot_key, slot_value.index1, slot_value.index2);
-                    // correct current index3 if it is out of range
-                    // we pick the nearest integer
-                    if (slot_value.index3 >= newNumIndex3) slot_value.index3 = newNumIndex3 - 1;
-                    // update listitem2 index and enabled flag
-                    listitem3.Index = slot_value.index3;
-                    listitem3.Enabled = (newNumIndex3 >= 2);
-                }
                 else // if (item == listitem3)
-                {
                     slot_value.index3 = index;
-                }
+                // correct listitem2 if index2 is out of range
+                var newNumIndex2 = PedData.GetNumIndex2(ped, slot_key, slot_value.index1);
+                if (slot_value.index2 >= newNumIndex2) slot_value.index2 = newNumIndex2 - 1;
+                listitem2.Index = slot_value.index2;
+                listitem2.Enabled = (newNumIndex2 >= 2);
+                // correct listitem3 if index3 is out of range
+                var newNumIndex3 = PedData.GetNumIndex3(ped, slot_key, slot_value.index1, slot_value.index2);
+                if (slot_value.index3 >= newNumIndex3) slot_value.index3 = newNumIndex3 - 1;
+                listitem3.Index = slot_value.index3;
+                listitem3.Enabled = (newNumIndex3 >= 2);
                 ped_data.SetSlotValue(ped, slot_key, slot_value);
             }
         };
