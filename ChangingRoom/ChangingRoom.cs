@@ -94,6 +94,7 @@ public class PedData
         [SlotType.CompVar] = 12,
         [SlotType.Prop] = 8,
         [SlotType.HeadOverlay] = 13,
+        [SlotType.Eye] = 1,
     };
 
     private Dictionary<SlotKey, SlotValue> data = new Dictionary<SlotKey, SlotValue>();
