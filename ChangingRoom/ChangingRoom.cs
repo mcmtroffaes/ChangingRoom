@@ -193,7 +193,7 @@ public class PedData
                     Hash._GET_NUM_HEAD_OVERLAY_VALUES, key.id) + 1);
             case SlotType.Eye:
                 // TODO: hardcoded for now; how to get this from native?
-                return 31;
+                return 32;
             default:
                 return 1;
         }
