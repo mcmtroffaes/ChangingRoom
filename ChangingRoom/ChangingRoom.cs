@@ -176,7 +176,7 @@ public class PedData
             case SlotType.CompVar: return new string[] { "Model", "Texture", "Color", "Highlight Color" };
             case SlotType.Prop: return new string[] { "Model", "Texture", "Color", "Highlight Color" };
             case SlotType.HeadOverlay: return new string[] { "Model", "Opacity", "Color", "Highlight Color" };
-            case SlotType.Parent: return new string[] { "Shape", "Skin", "Shape Mix", "Skin Mix" };
+            case SlotType.Parent: return new string[] { "Mom", "Dad", "Resemblance", "Skin Tone" };
             default: return new string[] { "Model", "Texture", "Color", "Highlight Color" };
         }
     }
@@ -281,10 +281,8 @@ public class PedData
                     return Function.Call<int>(Hash._0xD1F7CA1535D22818);
             }
         }
-        else if (key.typ == SlotType.Parent && (key.id == 0 || key.id == 2))
-            return 9; // shape mix for par1 and par3 going from 0 to 8
-        else
-            return 1;
+        else if (key.typ == SlotType.Parent)
+            return 9; // resemblance
         return 1;
     }
 
@@ -299,8 +297,8 @@ public class PedData
         // hair: highlight color
         if (key.typ == SlotType.CompVar && key.id == 2)
             return Function.Call<int>(Hash._GET_NUM_HAIR_COLORS);
-        else if (key.typ == SlotType.Parent && key.id == 0)
-            return 9; // skin mix for par1 going from 0 to 8
+        else if (key.typ == SlotType.Parent)
+            return 9; // skin tone
         else
             return 1;
     }
@@ -355,21 +353,16 @@ public class PedData
                 break;
             case SlotType.Parent:
                 // get current parent info
-                var par1 = GetSlotValue(new SlotKey(SlotType.Parent, 0));
-                var par2 = GetSlotValue(new SlotKey(SlotType.Parent, 1));
-                var par3 = GetSlotValue(new SlotKey(SlotType.Parent, 2));
-                var shape1 = par1.index1;
-                var shape2 = par2.index1;
-                var shape3 = par3.index1;
-                var skin1 = par1.index2;
-                var skin2 = par2.index2;
-                var skin3 = par3.index2;
-                float shapemix = par1.index3 / 8.0f;
-                float skinmix = par1.index4 / 8.0f;
-                float thirdmix = par3.index3 / 8.0f;
+                var par = GetSlotValue(new SlotKey(SlotType.Parent, 0));
+                var shape1 = par.index1;
+                var shape2 = par.index2;
+                var skin1 = par.index1;
+                var skin2 = par.index2;
+                float shapemix = par.index3 / 8.0f;
+                float skinmix = par.index4 / 8.0f;
                 Function.Call(
                     Hash.SET_PED_HEAD_BLEND_DATA, ped.Handle,
-                    shape1, shape2, shape3, skin1, skin2, skin3, shapemix, skinmix, thirdmix);
+                    shape1, shape2, 0, skin1, skin2, 0, shapemix, skinmix, 0.0f);
                 break;
         }
     }
@@ -445,8 +438,13 @@ public class PedData
             Function.Call(Hash.SET_PLAYER_MODEL, Game.Player, model.Hash);
             Function.Call(Hash.SET_PED_DEFAULT_COMPONENT_VARIATION, Game.Player.Character.Handle);
             if (hash == PedHash.FreemodeMale01 || hash == PedHash.FreemodeFemale01)
-                // must call this otherwise head overlays don't work
-                Function.Call(Hash.SET_PED_HEAD_BLEND_DATA, Game.Player.Character.Handle, 0, 0, 0, 0, 0, 0, 0.0f, 0.0f, 0.0f, true);
+            {
+                // must call SET_PED_HEAD_BLEND_DATA otherwise head overlays don't work
+                var slot_key = new SlotKey(SlotType.Parent, 0);
+                var slot_value = new SlotValue(0, 0, 4, 4);
+                var ped = Game.Player.Character;
+                SetSlotValue(ped, slot_key, slot_value);
+            }
             data.Clear();
         }
         model.MarkAsNoLongerNeeded();
@@ -551,13 +549,7 @@ public class ChangingRoom : Script
         AddSlotToMenu(barbmenu, "Lipstick", new SlotKey(SlotType.HeadOverlay, 8));
         AddSlotToMenu(barbmenu, "Chest Hair", new SlotKey(SlotType.HeadOverlay, 10));
         AddSlotToMenu(barbmenu, "Eyes", new SlotKey(SlotType.Eye, 0));
-        var randshapeitem = new UIMenuItem("Random Shape");
-        var randskinitem = new UIMenuItem("Random Skin");
-        charmenu.AddItem(randshapeitem);
-        charmenu.AddItem(randskinitem);
-        AddSlotToMenu(charmenu, "Parent 1", new SlotKey(SlotType.Parent, 0));
-        AddSlotToMenu(charmenu, "Parent 2", new SlotKey(SlotType.Parent, 1));
-        AddSlotToMenu(charmenu, "Parent 3", new SlotKey(SlotType.Parent, 2));
+        AddSlotToMenu(charmenu, "Heritage", new SlotKey(SlotType.Parent, 0));
         AddSlotToMenu(charmenu, "Blemishes", new SlotKey(SlotType.HeadOverlay, 0));
         AddSlotToMenu(charmenu, "Ageing", new SlotKey(SlotType.HeadOverlay, 3));
         AddSlotToMenu(charmenu, "Complexion", new SlotKey(SlotType.HeadOverlay, 6));
@@ -603,39 +595,6 @@ public class ChangingRoom : Script
             ped_data.FreemodeRedress(ped, old_data);
             old_data.Clear();
         };
-        // random stuff
-        charmenu.OnItemSelect += (sender, item, index) =>
-        {
-            if (item == randshapeitem || item == randskinitem)
-            {
-                var ped = Game.Player.Character;
-                var key1 = new SlotKey(SlotType.Parent, 0);
-                var key2 = new SlotKey(SlotType.Parent, 1);
-                var key3 = new SlotKey(SlotType.Parent, 2);
-                var par1 = ped_data.GetSlotValue(key1);
-                var par2 = ped_data.GetSlotValue(key2);
-                var par3 = ped_data.GetSlotValue(key3);
-                if (item == randshapeitem)
-                {
-                    par1.index1 = rnd.Next(PedData.GetNumIndex1(ped, key1));
-                    par1.index3 = rnd.Next(PedData.GetNumIndex3(ped, key1, par1.index1, par1.index2));
-                    par2.index1 = rnd.Next(PedData.GetNumIndex1(ped, key2));
-                }
-                else
-                {
-                    par1.index2 = rnd.Next(PedData.GetNumIndex2(ped, key1, par1.index1));
-                    par1.index4 = rnd.Next(PedData.GetNumIndex4(ped, key1, par1.index1, par1.index2, par1.index3));
-                    par2.index2 = rnd.Next(PedData.GetNumIndex2(ped, key2, par2.index1));
-                }
-                par3.index1 = 0;
-                par3.index2 = 0;
-                par3.index3 = 0;
-                par3.index4 = 0;
-                ped_data.SetSlotValue(ped, key1, par1);
-                ped_data.SetSlotValue(ped, key2, par2);
-                ped_data.SetSlotValue(ped, key3, par3);
-            }
-        };
     }
 
     public void AddSlotToMenu(UIMenu menu, string text, SlotKey slot_key)
@@ -646,11 +605,13 @@ public class ChangingRoom : Script
         var listitem2 = new UIMenuListItem(index_names[1], UI_LIST, 0);
         var listitem3 = new UIMenuListItem(index_names[2], UI_LIST, 0);
         var listitem4 = new UIMenuListItem(index_names[3], UI_LIST, 0);
+        var randomitem = new UIMenuItem("Random");
         var clearitem = new UIMenuItem("Clear");
         submenu.AddItem(listitem1);
         submenu.AddItem(listitem2);
         submenu.AddItem(listitem3);
         submenu.AddItem(listitem4);
+        submenu.AddItem(randomitem);
         submenu.AddItem(clearitem);
         // when the menu is selected, we only want submenu to be
         // enabled if its model and/or texture can be changed
@@ -757,6 +718,24 @@ public class ChangingRoom : Script
                 listitem2.Enabled = (ped_data.GetNumIndex2(ped, slot_key) >= 2);
                 listitem3.Enabled = (ped_data.GetNumIndex3(ped, slot_key) >= 2);
                 listitem4.Enabled = (ped_data.GetNumIndex4(ped, slot_key) >= 2);
+            }
+            else if (item == randomitem)
+            {
+                var ped = Game.Player.Character;
+                var slot_value = ped_data.GetSlotValue(slot_key);
+                slot_value.index1 = rnd.Next(PedData.GetNumIndex1(ped, slot_key));
+                slot_value.index2 = rnd.Next(PedData.GetNumIndex2(ped, slot_key, slot_value.index1));
+                slot_value.index3 = rnd.Next(PedData.GetNumIndex3(ped, slot_key, slot_value.index1, slot_value.index2));
+                slot_value.index4 = rnd.Next(PedData.GetNumIndex4(ped, slot_key, slot_value.index1, slot_value.index2, slot_value.index3));
+                listitem1.Index = slot_value.index1;
+                listitem2.Index = slot_value.index2;
+                listitem3.Index = slot_value.index3;
+                listitem4.Index = slot_value.index4;
+                listitem1.Enabled = (PedData.GetNumIndex1(ped, slot_key) >= 2);
+                listitem2.Enabled = (ped_data.GetNumIndex2(ped, slot_key) >= 2);
+                listitem3.Enabled = (ped_data.GetNumIndex3(ped, slot_key) >= 2);
+                listitem4.Enabled = (ped_data.GetNumIndex4(ped, slot_key) >= 2);
+                ped_data.SetSlotValue(ped, slot_key, slot_value);
             }
         };
     }
