@@ -727,6 +727,7 @@ public class ChangingRoom : Script
                 slot_value.index2 = rnd.Next(PedData.GetNumIndex2(ped, slot_key, slot_value.index1));
                 slot_value.index3 = rnd.Next(PedData.GetNumIndex3(ped, slot_key, slot_value.index1, slot_value.index2));
                 slot_value.index4 = rnd.Next(PedData.GetNumIndex4(ped, slot_key, slot_value.index1, slot_value.index2, slot_value.index3));
+                ped_data.SetSlotValue(ped, slot_key, slot_value);
                 listitem1.Index = slot_value.index1;
                 listitem2.Index = slot_value.index2;
                 listitem3.Index = slot_value.index3;
@@ -735,7 +736,6 @@ public class ChangingRoom : Script
                 listitem2.Enabled = (ped_data.GetNumIndex2(ped, slot_key) >= 2);
                 listitem3.Enabled = (ped_data.GetNumIndex3(ped, slot_key) >= 2);
                 listitem4.Enabled = (ped_data.GetNumIndex4(ped, slot_key) >= 2);
-                ped_data.SetSlotValue(ped, slot_key, slot_value);
             }
         };
     }
