@@ -518,9 +518,23 @@ public class ChangingRoom : SimpleUI
 
     public void AddFreemodeAppearanceToMenu(UIMenu menu)
     {
+        var old_data = new Dictionary<SlotKey, SlotValue>();
+        // undress character (used when Character or Barber menus are opened)
+        Action Undress = () =>
+        {
+            var ped = Game.Player.Character;
+            old_data = ped_data.FreemodeUndress(ped);
+        };
+        // redress character (when these menus are closed)
+        Action Redress = () =>
+        {
+            var ped = Game.Player.Character;
+            ped_data.FreemodeRedress(ped, old_data);
+            old_data.Clear();
+        };
         var topmenu = AddSubMenu(menu, "Appearance");
-        var charmenu = AddSubMenu(topmenu, "Character");
-        var barbmenu = AddSubMenu(topmenu, "Barber");
+        var charmenu = AddSubMenu(topmenu, "Character", OnSelect: Undress, OnClose: Redress);
+        var barbmenu = AddSubMenu(topmenu, "Barber", OnSelect: Undress, OnClose: Redress);
         var clo1menu = AddSubMenu(topmenu, "Clothing");
         var clo2menu = AddSubMenu(topmenu, "Clothing Extra");
         // we use parent blend to change face
@@ -556,29 +570,6 @@ public class ChangingRoom : SimpleUI
         AddSlotToMenu(clo2menu, "Parachute", new SlotKey(SlotType.CompVar, 5));
         AddSlotToMenu(clo2menu, "Armour", new SlotKey(SlotType.CompVar, 9));
         AddSlotToMenu(clo2menu, "Decal", new SlotKey(SlotType.CompVar, 10));
-        // undress character when Character or Barber menus are openend
-        var old_data = new Dictionary<SlotKey, SlotValue>();
-        charmenu.ParentMenu.OnItemSelect += (sender, item, index) =>
-        {
-            if (item == charmenu.ParentItem || item == barbmenu.ParentItem)
-            {
-                var ped = Game.Player.Character;
-                old_data = ped_data.FreemodeUndress(ped);
-            }
-        };
-        // redress character when the menu is closed
-        charmenu.OnMenuClose += (sender) =>
-        {
-            var ped = Game.Player.Character;
-            ped_data.FreemodeRedress(ped, old_data);
-            old_data.Clear();
-        };
-        barbmenu.OnMenuClose += (sender) =>
-        {
-            var ped = Game.Player.Character;
-            ped_data.FreemodeRedress(ped, old_data);
-            old_data.Clear();
-        };
     }
 
     public void AddSlotToMenu(UIMenu menu, string text, SlotKey slot_key)
