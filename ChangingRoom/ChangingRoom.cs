@@ -725,17 +725,12 @@ public class ChangingRoom : SimpleUI
 
     public void AddFreemodeModelToMenu(UIMenu menu)
     {
+        Action ChangeMale = () => ped_data.ChangePlayerModel(PedHash.FreemodeMale01);
+        Action ChangeFemale = () => ped_data.ChangePlayerModel(PedHash.FreemodeFemale01);
         var male = new UIMenuItem("Male");
         var female = new UIMenuItem("Female");
-        menu.AddItem(male);
-        menu.AddItem(female);
-        menu.OnItemSelect += (sender, item, index) =>
-        {
-            if (item == male)
-                ped_data.ChangePlayerModel(PedHash.FreemodeMale01);
-            else if (item == female)
-                ped_data.ChangePlayerModel(PedHash.FreemodeFemale01);
-        };
+        AddItem(menu, male, OnSelect: ChangeMale);
+        AddItem(menu, female, OnSelect: ChangeFemale);
     }
 
     public bool IsPedFreemode(Ped ped)
