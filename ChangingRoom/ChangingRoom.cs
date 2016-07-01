@@ -451,31 +451,15 @@ public class PedData
     }
 }
 
-public class ChangingRoom : Script
+public class ChangingRoom : SimpleUI
 {
     private Random rnd = new Random();
     static int UI_LIST_MAX = 256;
     static List<dynamic> UI_LIST = Enumerable.Range(0, UI_LIST_MAX).Cast<dynamic>().ToList();
     private readonly Dictionary<string, PedHash> _pedhash;
-    private MenuPool menuPool;
 
     // map slot type and slot id to drawable, texture, and palette
     public PedData ped_data = new PedData();
-
-    public UIMenu AddSubMenu(UIMenu menu, string name)
-    {
-        var item = new UIMenuItem(name);
-        menu.AddItem(item);
-        var submenu = new UIMenu(menu.Title.Caption, name);
-        menuPool.Add(submenu);
-        menu.BindMenuToItem(submenu, item);
-        return submenu;
-    }
-
-    public void RefreshIndex()
-    {
-        foreach (UIMenu menu in menuPool.ToList()) menu.RefreshIndex();
-    }
 
     public void AddStorymodeToMenu(UIMenu menu)
     {
@@ -867,24 +851,18 @@ public class ChangingRoom : Script
         }
     }
 
-    public ChangingRoom()
+    public override UIMenu Menu()
     {
-        menuPool = new MenuPool();
         var menuMain = new UIMenu("Changing Room", "Main Menu");
-        menuPool.Add(menuMain);
         AddStorymodeToMenu(menuMain);
         AddFreemodeToMenu(menuMain);
         AddActorActionToMenu(menuMain, "Save Actor", SaveActor, ExistsActor);
         AddActorActionToMenu(menuMain, "Load Actor", LoadActor, ExistsActor);
-        RefreshIndex();
+        return menuMain;
+    }
 
-        Tick += (sender, e) => menuPool.ProcessMenus();
-        KeyUp += (sender, e) =>
-        {
-            if (e.KeyCode == Keys.F5 && !menuPool.IsAnyMenuOpen())
-                menuMain.Visible = !menuMain.Visible;
-        };
-
+    public ChangingRoom() : base()
+    {
         _pedhash = new Dictionary<string, PedHash>();
         foreach (PedHash x in Enum.GetValues(typeof(PedHash))) _pedhash[x.ToString()] = x;
         var path = GetScriptFolder();
