@@ -741,21 +741,18 @@ public class ChangingRoom : SimpleUI
 
     public void AddClearAppearanceToMenu(UIMenu menu)
     {
-        var clearitem = new UIMenuItem("Clear Appearance");
-        menu.AddItem(clearitem);
-        menu.OnItemSelect += (sender, item, index) =>
+        Action Clear = () =>
         {
-            if (item == clearitem)
-            {
-                var ped = Game.Player.Character;
-                foreach (SlotType slot_type in Enum.GetValues(typeof(SlotType)))
-                    for (int slot_id=0; slot_id < PedData.GetNumId(slot_type); slot_id++)
-                    {
-                        var slot_key = new SlotKey(slot_type, slot_id);
-                        ped_data.ClearSlot(ped, slot_key);
-                    }
-            }
+            var ped = Game.Player.Character;
+            foreach (SlotType slot_type in Enum.GetValues(typeof(SlotType)))
+                for (int slot_id = 0; slot_id < PedData.GetNumId(slot_type); slot_id++)
+                {
+                    var slot_key = new SlotKey(slot_type, slot_id);
+                    ped_data.ClearSlot(ped, slot_key);
+                }
         };
+        var clearitem = new UIMenuItem("Clear Appearance");
+        AddItem(menu, clearitem, OnSelect: Clear);
     }
 
     public void AddActorActionToMenu(UIMenu menu, String name, Action<UIMenuItem, int> action, Func<int, bool> ticked)
