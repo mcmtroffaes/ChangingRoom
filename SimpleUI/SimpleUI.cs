@@ -25,7 +25,7 @@ public class SimpleUI : Script
     /// </summary>
     /// <param name="e">Key event.</param>
     /// <returns>Whether the script activation key is pressed or not.</returns>
-    public bool IsScriptKeyPressed(KeyEventArgs e)
+    public virtual bool IsScriptKeyPressed(KeyEventArgs e)
     {
         return (e.KeyCode == Keys.F5);
     }
