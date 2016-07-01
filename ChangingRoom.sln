@@ -5,6 +5,10 @@ VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ChangingRoom", "ChangingRoom\ChangingRoom.csproj", "{79D9A09F-1999-4148-9BA0-20AEBA9B3C8B}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LipSync", "LipSync\LipSync.csproj", "{DEE6FF43-5740-4F2E-8D67-1F797AC32F9C}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SimpleUI", "SimpleUI\SimpleUI.csproj", "{058A6714-2189-41A6-8AA6-C197CA2787EA}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -15,6 +19,14 @@ Global
 		{79D9A09F-1999-4148-9BA0-20AEBA9B3C8B}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{79D9A09F-1999-4148-9BA0-20AEBA9B3C8B}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{79D9A09F-1999-4148-9BA0-20AEBA9B3C8B}.Release|Any CPU.Build.0 = Release|Any CPU
+		{DEE6FF43-5740-4F2E-8D67-1F797AC32F9C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{DEE6FF43-5740-4F2E-8D67-1F797AC32F9C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{DEE6FF43-5740-4F2E-8D67-1F797AC32F9C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{DEE6FF43-5740-4F2E-8D67-1F797AC32F9C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{058A6714-2189-41A6-8AA6-C197CA2787EA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{058A6714-2189-41A6-8AA6-C197CA2787EA}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{058A6714-2189-41A6-8AA6-C197CA2787EA}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{058A6714-2189-41A6-8AA6-C197CA2787EA}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

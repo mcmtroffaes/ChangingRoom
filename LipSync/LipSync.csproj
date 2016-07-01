@@ -4,11 +4,11 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{79D9A09F-1999-4148-9BA0-20AEBA9B3C8B}</ProjectGuid>
+    <ProjectGuid>{DEE6FF43-5740-4F2E-8D67-1F797AC32F9C}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>ChangingRoom</RootNamespace>
-    <AssemblyName>ChangingRoom</AssemblyName>
+    <RootNamespace>LipSync</RootNamespace>
+    <AssemblyName>LipSync</AssemblyName>
     <TargetFrameworkVersion>v4.5.2</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
@@ -30,15 +30,14 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="NativeUI">
-      <HintPath>..\..\..\NativeUI.dll</HintPath>
+    <Reference Include="NAudio">
+      <HintPath>..\..\..\NAudio.dll</HintPath>
     </Reference>
     <Reference Include="ScriptHookVDotNet">
       <HintPath>..\..\..\ScriptHookVDotNet.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
-    <Reference Include="System.Windows.Forms" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="Microsoft.CSharp" />
@@ -47,8 +46,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="ChangingRoom.cs" />
-    <Compile Include="ChangingRoomPeds.cs" />
+    <Compile Include="LipSync.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
