@@ -30,10 +30,6 @@
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="NativeUI, Version=1.0.0.0, Culture=neutral, processorArchitecture=AMD64">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\..\..\NativeUI.dll</HintPath>
-    </Reference>
     <Reference Include="ScriptHookVDotNet">
       <HintPath>..\..\..\ScriptHookVDotNet.dll</HintPath>
     </Reference>
@@ -50,12 +46,6 @@
   <ItemGroup>
     <Compile Include="LipSync.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\SimpleUI\SimpleUI.csproj">
-      <Project>{058a6714-2189-41a6-8aa6-c197ca2787ea}</Project>
-      <Name>SimpleUI</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
