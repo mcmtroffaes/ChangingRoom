@@ -107,9 +107,12 @@ class LipSync : Script
                 var location = "D:\\vocals.wav"; // your file here
                 player.SoundLocation = location;
                 player_values = ReadWav(location);
-                player.Load();
-                player.Play();
-                stopwatch.Restart();
+                if (player_values != null)
+                {
+                    player.Load();
+                    player.Play();
+                    stopwatch.Restart();
+                }
             }
         };
         Tick += (sender, e) =>
