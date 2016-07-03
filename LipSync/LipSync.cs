@@ -93,26 +93,35 @@ class LipSync : Script
         return (e.KeyCode == Keys.J);
     }
 
-    public LipSync() : base()
+    public LipSync()
     {
         Interval = 100;
+        var playkey = (Keys)Enum.Parse(typeof(Keys), Settings.GetValue("lipsync", "play", "J"));
+        var stopkey = (Keys)Enum.Parse(typeof(Keys), Settings.GetValue("lipsync", "stop", "K"));
         var player = new SoundPlayer();
+        player.SoundLocation = Settings.GetValue("lipsync", "sound");
+        player_values = ReadWav(Settings.GetValue("lipsync", "vocal"));
         var playing = false;
         KeyUp += (sender, e) =>
         {
-            if (IsScriptKeyPressed(e))
+            if (e.KeyCode == playkey)
             {
                 stopwatch.Stop();
                 player.Stop();
-                var location = "D:\\vocals.wav"; // your file here
-                player.SoundLocation = location;
-                player_values = ReadWav(location);
+                playing = false;
+                Function.Call(Hash.STOP_ANIM_TASK, Game.Player.Character.Handle, "mp_facial", "mic_chatter", -2.0f);
                 if (player_values != null)
                 {
-                    player.Load();
                     player.Play();
                     stopwatch.Restart();
                 }
+            }
+            else if (e.KeyCode == stopkey)
+            {
+                stopwatch.Stop();
+                player.Stop();
+                playing = false;
+                Function.Call(Hash.STOP_ANIM_TASK, Game.Player.Character.Handle, "mp_facial", "mic_chatter", -2.0f);
             }
         };
         Tick += (sender, e) =>
