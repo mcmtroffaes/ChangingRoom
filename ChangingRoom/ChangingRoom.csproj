@@ -33,8 +33,9 @@
     <Reference Include="NativeUI">
       <HintPath>..\..\..\NativeUI.dll</HintPath>
     </Reference>
-    <Reference Include="ScriptHookVDotNet">
-      <HintPath>..\..\..\ScriptHookVDotNet.dll</HintPath>
+    <Reference Include="ScriptHookVDotNet2, Version=2.10.0.0, Culture=neutral, processorArchitecture=AMD64">
+      <SpecificVersion>False</SpecificVersion>
+      <HintPath>bin\Debug\ScriptHookVDotNet2.dll</HintPath>
     </Reference>
     <Reference Include="System" />
     <Reference Include="System.Core" />
@@ -50,12 +51,7 @@
     <Compile Include="ChangingRoom.cs" />
     <Compile Include="ChangingRoomPeds.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\SimpleUI\SimpleUI.csproj">
-      <Project>{058a6714-2189-41a6-8aa6-c197ca2787ea}</Project>
-      <Name>SimpleUI</Name>
-    </ProjectReference>
+    <Compile Include="SimpleUI.cs" />
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
